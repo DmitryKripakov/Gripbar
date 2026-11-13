@@ -1,0 +1,30 @@
+## Interface: 16001
+## Title: Gripbar
+## Notes: Back paddle and grip buttons (Steam Controller, Steam Deck, Xbox Elite, DualSense Edge, Razer) as extra slots on WoW: Forever's native gamepad crossbar, with crossbar pages, page 2 / 3 binds and a melee / wand swap.
+## Notes-ruRU: Задние лепестки и грипы контроллера (Steam Controller, Steam Deck, Xbox Elite, DualSense Edge, Razer) как дополнительные слоты родной крестовины WoW: Forever, со страницами, биндами страниц 2 / 3 и свапом ближнего боя и палочки.
+## Author: Dmitrii
+## Version: 1.0.0
+## IconTexture: Interface\AddOns\Gripbar\Media\Icon.tga
+## X-License: MIT
+## X-Credits: Fork of SNRN Backhand 0.9.1 by SillyNameRandomNumber (MIT)
+## Category: Action Bars
+## SavedVariables: GripbarDB
+## SavedVariablesPerCharacter: GripbarCharDB
+
+Core.lua
+Database.lua
+ActionStorage.lua
+PageNavigation.lua
+Buttons.lua
+FocusRouting.lua
+Layers.lua
+RawInput.lua
+Controller.lua
+Panels.lua
+PaddleKeys.lua
+Diagnostics.lua
+Badges.lua
+PageBinds.lua
+WandShoot.lua
+Settings.lua
+Gripbar.lua

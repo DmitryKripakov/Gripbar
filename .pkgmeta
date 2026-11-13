@@ -1,0 +1,13 @@
+package-as: Gripbar
+
+ignore:
+  - tools
+  - docs
+  - .github
+  - .gitignore
+  - .gitattributes
+  - .pkgmeta
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

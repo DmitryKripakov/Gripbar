@@ -1,0 +1,7 @@
+# Packager output and local scratch
+.release/
+*.zip
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
