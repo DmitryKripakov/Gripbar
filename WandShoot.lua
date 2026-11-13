@@ -131,8 +131,8 @@ local status = "off"
 -- touched, only their ring is made transparent while ours covers it):
 --   * the top bar's X: Shoot, while X would shoot (pulses while the wand fires);
 --   * the RB shortcut bar's X: the main-hand weapon, while RB + X swings.
--- Same build as the paddle slots: the icon under a round mask inset by 3, the
--- native circle-slot ring over it, the size following the button.
+-- Same build as the paddle slots: the icon under a round mask, the native
+-- circle-slot ring over it, the size following the button.
 local wandActive = false
 local overlays = {}
 local rbOnTop = false
@@ -152,9 +152,12 @@ local function CreateOverlay(native)
     frame.native = native
     frame.texture = frame:CreateTexture(nil, "ARTWORK", nil, 0)
     frame.texture:SetAllPoints()
+    -- The round mask sits inside the ring's inner edge (about 11 % in on
+    -- each side), so no icon pixels show past the ring, pressed or not.
+    local inset = math.max(3, math.floor((native:GetWidth() or 40) * 0.11 + 0.5))
     local mask = frame:CreateMaskTexture()
-    mask:SetPoint("TOPLEFT", 3, -3)
-    mask:SetPoint("BOTTOMRIGHT", -3, 3)
+    mask:SetPoint("TOPLEFT", inset, -inset)
+    mask:SetPoint("BOTTOMRIGHT", -inset, inset)
     if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("CircleMask") then
         mask:SetAtlas("CircleMask")
     else
