@@ -178,13 +178,23 @@ local function CreateOverlay(native)
     return frame
 end
 
+-- The game's button under an overlay: its ring, icon and slot art go
+-- transparent while ours covers it, so nothing peeks out around our icon
+-- (for example while ours is pressed and 4 smaller). Text such as the
+-- range dot stays.
+local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "Border", "SlotBackground" }
+
 local function SetNativeRingAlpha(native, alpha)
     if not native then
         return
     end
     local normal = native.NormalTexture or (native.GetNormalTexture and native:GetNormalTexture())
     local pushed = native.PushedTexture or (native.GetPushedTexture and native:GetPushedTexture())
-    for _, texture in ipairs({ normal, pushed }) do
+    local textures = { normal, pushed }
+    for _, key in ipairs(NATIVE_ART) do
+        textures[#textures + 1] = native[key]
+    end
+    for _, texture in ipairs(textures) do
         if texture and texture.SetAlpha then
             texture:SetAlpha(alpha)
         end
