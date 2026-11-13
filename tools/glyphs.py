@@ -336,6 +336,11 @@ def build_icon(media, docs=None, text="R4"):
     if docs:
         os.makedirs(docs, exist_ok=True)
         icon.resize((256, 256), Image.LANCZOS).save(os.path.join(docs, "icon.png"))
+        # Square logo for CurseForge: the slot on the dark background it is
+        # shown on there, a little padding around it.
+        logo = Image.new("RGBA", (512, 512), (18, 18, 18, 255))
+        logo.alpha_composite(icon.resize((464, 464), Image.LANCZOS), (24, 24))
+        logo.convert("RGB").save(os.path.join(docs, "logo.png"))
     print("built icon", media)
 
 
