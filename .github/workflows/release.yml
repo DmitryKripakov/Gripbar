@@ -1,0 +1,25 @@
+# Builds the addon zip with the BigWigs packager and uploads it to CurseForge
+# and GitHub Releases whenever a version tag (v1.0.1, v1.1.0, ...) is pushed.
+# Needs the repository secret CF_API_KEY (a CurseForge API token) and
+# "## X-Curse-Project-ID: <id>" in Gripbar.toc.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: BigWigsMods/packager@v2
