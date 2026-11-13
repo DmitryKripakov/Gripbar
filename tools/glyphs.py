@@ -297,7 +297,7 @@ def build_icon(media, docs=None, text="R4"):
     slot = ring_slot(big, pad=8)
     # The letters alone (no glow of their own: the slot's glow is below),
     # built the same way as the in-game glyphs.
-    inner = int(big * 0.80)
+    inner = int(big * 0.92)
     mask = text_mask(text, ICON_FONT, size=SIZE, fill_ratio=0.58)
     mask = mask.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(1.0))
     g = engrave(mask, glow=False).resize((inner, inner), Image.LANCZOS)

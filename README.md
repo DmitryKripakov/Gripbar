@@ -6,6 +6,8 @@ Back paddles and grip buttons as extra slots on the native gamepad crossbar of *
 
 Forever's crossbar gives you the d-pad and the face buttons on four layers (no trigger, LT, RT, LT + RT). Gripbar adds four more slots to every layer for the extra buttons on the back of your controller (Steam Controller and Steam Deck grips, Xbox Elite and Scuf paddles, DualSense Edge back and Fn buttons, Razer M buttons): 16 more actions without taking your thumbs off the sticks. The slots sit around each bar, use Blizzard's own crossbar art, and expand, fade and page together with the native bars.
 
+![Gripbar on the WoW: Forever crossbar: L4 / R4 / L5 / R5 slots around every bar](docs/screenshot.jpg)
+
 ## Features
 
 - **Slots on the crossbar.** Two slots by the d-pad and two by the face buttons on each bar. The focused bar grows from its centre like the native slots; unfocused bars fade with the game's own.

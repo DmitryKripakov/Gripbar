@@ -126,12 +126,15 @@ RegisterStateDriver(driver, "wand", "[@target,harm,nodead] shoot; none")
 
 local status = "off"
 
--- Shoot's icon over the top bar's X while X would shoot (option on, wand
--- wielded, a living enemy targeted), so the bar shows what X does. A plain
--- frame of ours anchored to the game's button: nothing of the game's button
--- is touched. It pulses while the wand fires (auto-repeat).
+-- Icons that show what the swapped presses do, drawn over the game's own
+-- buttons (plain frames of ours anchored to them; the game's buttons are not
+-- touched, only their ring is made transparent while ours covers it):
+--   * the top bar's X: Shoot, while X would shoot (pulses while the wand fires);
+--   * the RB shortcut bar's X: the main-hand weapon, while RB + X swings.
+-- Same build as the paddle slots: the icon under a round mask inset by 3, the
+-- native circle-slot ring over it, the size following the button.
 local wandActive = false
-local iconFrame
+local overlays = {}
 
 local function TopX()
     local main = _G.GamepadMainActionBarFrame
@@ -140,24 +143,15 @@ local function TopX()
     return bar and bar.Right and bar.Right.ActionButton1
 end
 
-local function EnsureIcon()
-    if iconFrame then
-        return iconFrame
-    end
-    local native = TopX()
-    if not native then
-        return nil
-    end
-    iconFrame = CreateFrame("Frame", nil, UIParent)
-    iconFrame:SetFrameStrata(native:GetFrameStrata())
-    iconFrame:SetFrameLevel(native:GetFrameLevel() + 6)
-    -- Same build as the paddle slots: the icon fills the button under a round
-    -- mask inset by 3, and the native circle-slot ring is drawn over it, so
-    -- the ring stays visible and the size follows the button (focus, bumper).
-    iconFrame:SetAllPoints(native)
-    iconFrame.texture = iconFrame:CreateTexture(nil, "ARTWORK", nil, 0)
-    iconFrame.texture:SetAllPoints()
-    local mask = iconFrame:CreateMaskTexture()
+local function CreateOverlay(native)
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:SetFrameStrata(native:GetFrameStrata())
+    frame:SetFrameLevel(native:GetFrameLevel() + 6)
+    frame:SetAllPoints(native)
+    frame.native = native
+    frame.texture = frame:CreateTexture(nil, "ARTWORK", nil, 0)
+    frame.texture:SetAllPoints()
+    local mask = frame:CreateMaskTexture()
     mask:SetPoint("TOPLEFT", 3, -3)
     mask:SetPoint("BOTTOMRIGHT", -3, 3)
     if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("CircleMask") then
@@ -165,26 +159,25 @@ local function EnsureIcon()
     else
         mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
     end
-    iconFrame.texture:AddMaskTexture(mask)
-    iconFrame.ring = iconFrame:CreateTexture(nil, "OVERLAY", nil, 1)
-    iconFrame.ring:SetAllPoints()
+    frame.texture:AddMaskTexture(mask)
+    frame.ring = frame:CreateTexture(nil, "OVERLAY", nil, 1)
+    frame.ring:SetAllPoints()
     if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo("gamepad-actionbar-circleslot-border-normal") then
-        iconFrame.ring:SetAtlas("gamepad-actionbar-circleslot-border-normal")
+        frame.ring:SetAtlas("gamepad-actionbar-circleslot-border-normal")
     else
-        iconFrame.ring:Hide()
+        frame.ring:Hide()
     end
-    iconFrame.pulse = iconFrame:CreateAnimationGroup()
-    iconFrame.pulse:SetLooping("BOUNCE")
-    local fade = iconFrame.pulse:CreateAnimation("Alpha")
+    frame.pulse = frame:CreateAnimationGroup()
+    frame.pulse:SetLooping("BOUNCE")
+    local fade = frame.pulse:CreateAnimation("Alpha")
     fade:SetFromAlpha(1)
     fade:SetToAlpha(0.45)
     fade:SetDuration(0.5)
-    iconFrame:Hide()
-    return iconFrame
+    frame:Hide()
+    return frame
 end
 
-local function SetNativeRingAlpha(alpha)
-    local native = TopX()
+local function SetNativeRingAlpha(native, alpha)
     if not native then
         return
     end
@@ -197,18 +190,40 @@ local function SetNativeRingAlpha(alpha)
     end
 end
 
-local function UpdateWandIcon()
-    local shown = wandActive and UnitExists("target") and UnitCanAttack("player", "target")
-        and not UnitIsDeadOrGhost("target")
-    local frame = (shown or iconFrame) and EnsureIcon()
-    if not frame then
-        return
-    end
-    if shown then
-        local texture = C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(SHOOT_SPELL_ID)
+-- Shows an overlay over a native button with a texture, or hides it.
+local function ShowOverlay(key, native, texture)
+    local frame = overlays[key]
+    if texture and native then
+        if not frame or frame.native ~= native then
+            if frame then
+                frame:Hide()
+                SetNativeRingAlpha(frame.native, 1)
+            end
+            frame = CreateOverlay(native)
+            overlays[key] = frame
+        end
         frame.texture:SetTexture(texture)
         frame:Show()
-        SetNativeRingAlpha(0)
+        SetNativeRingAlpha(native, 0)
+        return frame
+    elseif frame and frame:IsShown() then
+        frame.pulse:Stop()
+        frame:SetAlpha(1)
+        frame:Hide()
+        SetNativeRingAlpha(frame.native, 1)
+    end
+    return nil
+end
+
+local function EnemyTargeted()
+    return UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDeadOrGhost("target")
+end
+
+local function UpdateWandIcon()
+    local shown = wandActive and EnemyTargeted()
+    local frame = ShowOverlay("shoot", shown and TopX() or nil,
+        shown and C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(SHOOT_SPELL_ID) or nil)
+    if frame then
         local name = ShootName()
         local repeating = name and IsAutoRepeatSpell and IsAutoRepeatSpell(name)
         if repeating and not frame.pulse:IsPlaying() then
@@ -217,11 +232,6 @@ local function UpdateWandIcon()
             frame.pulse:Stop()
             frame:SetAlpha(1)
         end
-    else
-        frame.pulse:Stop()
-        frame:SetAlpha(1)
-        frame:Hide()
-        SetNativeRingAlpha(1)
     end
 end
 
@@ -233,38 +243,119 @@ iconEvents:RegisterEvent("START_AUTOREPEAT_SPELL")
 iconEvents:RegisterEvent("STOP_AUTOREPEAT_SPELL")
 iconEvents:SetScript("OnEvent", UpdateWandIcon)
 
--- Pressed look while X is held, like the native slots and the paddles: 4
--- smaller, 2 lower, the pressed ring. X goes to our button while it shoots,
--- so the game's own button never sees the press.
-local PRESSED_OFFSET = 4
+-- The RB shortcut bar's X: while RB is held the game shows its shortcut bar,
+-- whose X shoots (and shows Shoot's or the wand's icon). That button is
+-- found by its icon, among the crossbar's visible buttons, and remembered.
+local MAIN_HAND_SLOT = 16
+local rbX
 
-local function SetWandPressed(pressed)
-    local native = TopX()
-    if not iconFrame or not native then
+local function IconOf(native)
+    for _, key in ipairs({ "icon", "Icon", "SpecialActionIcon" }) do
+        local region = native[key]
+        if region and region.IsShown and region:IsShown() and region.GetTexture then
+            local texture = region:GetTexture()
+            if texture then
+                return texture
+            end
+        end
+    end
+    return nil
+end
+
+local function FindRBX()
+    local main = _G.GamepadMainActionBarFrame
+    local root = main and main.PageUnit
+    if not root then
+        return nil
+    end
+    local shoot = C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(SHOOT_SPELL_ID)
+    local wand = GetInventoryItemTexture("player", RANGED_SLOT)
+    local top = TopX()
+    local found
+    local function Scan(frame, depth)
+        if found or depth > 8 or not frame:IsVisible() then
+            return
+        end
+        if frame ~= top and frame:IsObjectType("Button") then
+            local texture = IconOf(frame)
+            if texture and (texture == shoot or texture == wand) then
+                found = frame
+                return
+            end
+        end
+        for _, child in ipairs({ frame:GetChildren() }) do
+            Scan(child, depth + 1)
+        end
+    end
+    Scan(root, 0)
+    return found
+end
+
+local rbIndex
+local rbPoll = CreateFrame("Frame")
+local rbElapsed = 0
+rbPoll:SetScript("OnUpdate", function(_, elapsed)
+    rbElapsed = rbElapsed + elapsed
+    if rbElapsed < 0.05 then
         return
     end
-    iconFrame:ClearAllPoints()
-    if pressed and iconFrame:IsShown() then
+    rbElapsed = 0
+    local held = false
+    if wandActive and rbIndex and GetGamePadState then
+        local state = GetGamePadState()
+        held = state and state.buttons and state.buttons[rbIndex] == true or false
+    end
+    if held and EnemyTargeted() then
+        if not (rbX and rbX:IsVisible()) then
+            rbX = FindRBX()
+        end
+        local weapon = GetInventoryItemTexture("player", MAIN_HAND_SLOT)
+            or (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(6603))
+        ShowOverlay("melee", rbX, rbX and weapon or nil)
+    else
+        ShowOverlay("melee", nil, nil)
+    end
+end)
+
+-- Pressed look while X is held, like the native slots and the paddles: 4
+-- smaller, 2 lower, the pressed ring. Our button gets these presses, so the
+-- game's own button never sees them.
+local PRESSED_OFFSET = 4
+
+local function SetPressed(frame, pressed)
+    if not frame or not frame.native then
+        return
+    end
+    local native = frame.native
+    frame:ClearAllPoints()
+    if pressed and frame:IsShown() then
         local width, height = native:GetSize()
-        iconFrame:SetPoint("CENTER", native, "CENTER", 0, -PRESSED_OFFSET / 2)
-        iconFrame:SetSize(width - PRESSED_OFFSET, height - PRESSED_OFFSET)
+        frame:SetPoint("CENTER", native, "CENTER", 0, -PRESSED_OFFSET / 2)
+        frame:SetSize(width - PRESSED_OFFSET, height - PRESSED_OFFSET)
         if C_Texture.GetAtlasInfo("gamepad-actionbar-circleslot-border-pressed") then
-            iconFrame.ring:SetAtlas("gamepad-actionbar-circleslot-border-pressed")
+            frame.ring:SetAtlas("gamepad-actionbar-circleslot-border-pressed")
         end
     else
-        iconFrame:SetAllPoints(native)
+        frame:SetAllPoints(native)
         if C_Texture.GetAtlasInfo("gamepad-actionbar-circleslot-border-normal") then
-            iconFrame.ring:SetAtlas("gamepad-actionbar-circleslot-border-normal")
+            frame.ring:SetAtlas("gamepad-actionbar-circleslot-border-normal")
         end
     end
 end
 
 button:HookScript("OnClick", function(self, _, down)
-    -- A press routed to a trigger layer's own button does not press the top X.
-    if down and self:GetAttribute("bx-route") ~= "shoot" then
-        return
+    local route = self:GetAttribute("bx-route")
+    if down then
+        -- Only our own presses: a trigger layer's press is the game's button.
+        if route == "shoot" then
+            SetPressed(overlays.shoot, true)
+        elseif route == "melee" then
+            SetPressed(overlays.melee, true)
+        end
+    else
+        SetPressed(overlays.shoot, false)
+        SetPressed(overlays.melee, false)
     end
-    SetWandPressed(down == true)
 end)
 
 -- The emulated modifier ("SHIFT", "CTRL", "ALT") a trigger produces, or nil.
@@ -322,6 +413,7 @@ local function ApplyWandShoot()
         button:SetAttribute("bx-shoot", "/cast [@target,harm,nodead] !" .. name)
         button:SetAttribute("bx-melee", "/startattack [@target,harm,nodead]")
         button:SetAttribute("bx-rb", PadIndex("PADRSHOULDER"))
+        rbIndex = PadIndex("PADRSHOULDER")
         button:SetAttribute("bx-lt", PadIndex("PADLTRIGGER"))
         button:SetAttribute("bx-rt", PadIndex("PADRTRIGGER"))
         for layer in pairs(LAYER_BARS) do
