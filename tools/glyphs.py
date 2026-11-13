@@ -287,14 +287,20 @@ def ring_slot(size, pad=4):
     return img
 
 
+ICON_FONT = r"C:\Windows\Fonts\palab.ttf"
+
+
 def build_icon(media, docs=None, text="R4"):
     """The addon icon: one round slot with an engraved glyph. Media/Icon.tga
     (128 x 128) and, with a docs folder, docs/icon.png (256 x 256)."""
     big = 512
     slot = ring_slot(big, pad=8)
-    glyph = Image.open(os.path.join(media, "Glyph%s.tga" % text)).convert("RGBA")
+    # The letters alone (no glow of their own: the slot's glow is below),
+    # built the same way as the in-game glyphs.
     inner = int(big * 0.80)
-    g = glyph.resize((inner, inner), Image.LANCZOS)
+    mask = text_mask(text, ICON_FONT, size=SIZE, fill_ratio=0.58)
+    mask = mask.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.GaussianBlur(1.0))
+    g = engrave(mask, glow=False).resize((inner, inner), Image.LANCZOS)
     # keep the glyph (and its glow) inside the rim
     mask = Image.new("L", (big, big), 0)
     ImageDraw.Draw(mask).ellipse((big * 0.075, big * 0.075, big * 0.925, big * 0.925), fill=255)
@@ -302,6 +308,23 @@ def build_icon(media, docs=None, text="R4"):
     layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
     layer.alpha_composite(g, ((big - inner) // 2, (big - inner) // 2))
     layer.putalpha(ImageChops.multiply(layer.getchannel("A"), mask))
+    # The slot's own glow fills the whole disk up to the rim, like the game's
+    # slot (the glyph texture's glow is sized for in-game slots and comes out
+    # too small once the glyph is scaled down here).
+    glow = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    gp = glow.load()
+    c = (big - 1) / 2
+    reach = big / 2 * 0.86
+    centre, edge = (84, 76, 65), (33, 31, 28)
+    for y in range(big):
+        for x in range(big):
+            dist = ((x - c) ** 2 + (y - c) ** 2) ** 0.5 / reach
+            if dist >= 1:
+                continue
+            t = dist ** 1.3
+            col = tuple(int(centre[i] * (1 - t) + edge[i] * t) for i in range(3))
+            gp[x, y] = col + (int(255 * (1 - _smooth(0.85, 1.0, dist))),)
+    slot = Image.alpha_composite(slot, glow)
     icon = Image.alpha_composite(slot, layer)
     # the rim on top again, so the glow never washes over it
     rim_only = slot.copy()
