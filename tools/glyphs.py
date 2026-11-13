@@ -4,6 +4,7 @@ the native crossbar's A / B / X / Y slots. Needs Pillow.
 usage: glyphs.py preview <out.png>
        glyphs.py build <font.ttf> <outdir> [TEXT ...]   (default: L4 R4 L5 R5 M1-M4 Fn)
        glyphs.py paddles <media dir>                      (GlyphP1-P4 from Media/P1-P4.tga)
+       glyphs.py icon <media dir> [docs dir]              (Media/Icon.tga, docs/icon.png)
 
 The shipped glyphs use Palatino Linotype Bold (palab.ttf).
 """
@@ -189,7 +190,7 @@ def build(font_path, outdir, texts=None):
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "paddles":
+    if sys.argv[1] in ("paddles", "icon"):
         pass
     elif sys.argv[1] == "preview":
         preview(sys.argv[2])
@@ -226,3 +227,83 @@ def build_paddles(media):
 
 if __name__ == "__main__" and len(sys.argv) > 2 and sys.argv[1] == "paddles":
     build_paddles(sys.argv[2])
+
+
+def _smooth(edge0, edge1, x):
+    t = max(0.0, min(1.0, (x - edge0) / (edge1 - edge0)))
+    return t * t * (3 - 2 * t)
+
+
+def ring_slot(size, pad=4):
+    """A round crossbar slot of our own: dark backing with a soft inner bevel
+    (lighter at the top, darker at the bottom), a bronze rim and a thin dark
+    outline, on transparent. Colours and proportions measured from the game's
+    circle slot; no game art is copied."""
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    px = img.load()
+    c = (size - 1) / 2
+    radius = size / 2 - pad
+    rim = (126, 101, 75)
+    outline = (30, 14, 10)
+    for y in range(size):
+        for x in range(size):
+            dx, dy = x - c, y - c
+            d = (dx * dx + dy * dy) ** 0.5 / radius
+            if d > 1.04:
+                continue
+            # backing with the inner bevel
+            up = -dy / radius                      # +1 top, -1 bottom
+            bevel = _smooth(0.70, 0.88, d)
+            base = 33 + bevel * 6 * up
+            back = (base + 1, base, base - 2)
+            back_a = 1.0 - _smooth(0.90, 0.93, d)
+            # bronze rim, brightest in its middle
+            rim_a = _smooth(0.875, 0.915, d) * (1.0 - _smooth(0.975, 0.995, d))
+            shade = 0.80 + 0.20 * (1.0 - abs(d - 0.945) / 0.05)
+            # thin outline just outside the rim
+            out_a = _smooth(0.975, 0.99, d) * (1.0 - _smooth(1.005, 1.035, d)) * 0.9
+            r = g = b = 0.0
+            a = 0.0
+            for col, al in ((back, back_a), (tuple(v * shade for v in rim), rim_a), (outline, out_a)):
+                if al <= 0:
+                    continue
+                r = col[0] * al + r * (1 - al)
+                g = col[1] * al + g * (1 - al)
+                b = col[2] * al + b * (1 - al)
+                a = al + a * (1 - al)
+            if a > 0:
+                px[x, y] = (int(r / a if a else 0), int(g / a if a else 0), int(b / a if a else 0), int(a * 255))
+    return img
+
+
+def build_icon(media, docs=None, text="R4"):
+    """The addon icon: one round slot with an engraved glyph. Media/Icon.tga
+    (128 x 128) and, with a docs folder, docs/icon.png (256 x 256)."""
+    big = 512
+    slot = ring_slot(big, pad=8)
+    glyph = Image.open(os.path.join(media, "Glyph%s.tga" % text)).convert("RGBA")
+    inner = int(big * 0.80)
+    g = glyph.resize((inner, inner), Image.LANCZOS)
+    # keep the glyph (and its glow) inside the rim
+    mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask).ellipse((big * 0.075, big * 0.075, big * 0.925, big * 0.925), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(4))
+    layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    layer.alpha_composite(g, ((big - inner) // 2, (big - inner) // 2))
+    layer.putalpha(ImageChops.multiply(layer.getchannel("A"), mask))
+    icon = Image.alpha_composite(slot, layer)
+    # the rim on top again, so the glow never washes over it
+    rim_only = slot.copy()
+    rim_mask = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(rim_mask).ellipse((big * 0.05, big * 0.05, big * 0.95, big * 0.95), fill=255)
+    rim_only.putalpha(ImageChops.subtract(slot.getchannel("A"), rim_mask))
+    icon = Image.alpha_composite(icon, rim_only)
+    icon.resize((128, 128), Image.LANCZOS).save(os.path.join(media, "Icon.tga"))
+    if docs:
+        os.makedirs(docs, exist_ok=True)
+        icon.resize((256, 256), Image.LANCZOS).save(os.path.join(docs, "icon.png"))
+    print("built icon", media)
+
+
+if __name__ == "__main__" and len(sys.argv) > 2 and sys.argv[1] == "icon":
+    build_icon(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None)
