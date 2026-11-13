@@ -263,10 +263,13 @@ def ring_slot(size, pad=4):
             rim_a = _smooth(0.875, 0.915, d) * (1.0 - _smooth(0.975, 0.995, d))
             shade = 0.80 + 0.20 * (1.0 - abs(d - 0.945) / 0.05)
             angle = math.atan2(-dy, dx)                    # 0 right, +pi/2 top
-            facing = max(0.0, math.cos(angle - math.radians(135)))
-            glint = facing ** 3
-            shade *= 0.88 + 0.55 * glint
-            spec = glint ** 4 * max(0.0, 1.0 - abs(d - 0.94) / 0.025)
+            # Two glints: the main one at the top left, a softer one at the
+            # bottom right; each fades out along a wide arc of the ring.
+            main = max(0.0, math.cos(angle - math.radians(135))) ** 1.6
+            rear = max(0.0, math.cos(angle - math.radians(-45))) ** 1.6
+            glint = max(main, 0.75 * rear)
+            shade *= 0.82 + 0.70 * glint
+            spec = (main ** 3 + 0.6 * rear ** 3) * max(0.0, 1.0 - abs(d - 0.94) / 0.028)
             # thin outline just outside the rim
             out_a = _smooth(0.975, 0.99, d) * (1.0 - _smooth(1.005, 1.035, d)) * 0.9
             r = g = b = 0.0
