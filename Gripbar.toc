@@ -6,6 +6,7 @@
 ## Version: 1.0.0
 ## IconTexture: Interface\AddOns\Gripbar\Media\Icon.tga
 ## X-License: MIT
+## X-Website: https://github.com/DmitryKripakov/Gripbar
 ## X-Credits: Fork of SNRN Backhand 0.9.1 by SillyNameRandomNumber (MIT)
 ## Category: Action Bars
 ## SavedVariables: GripbarDB

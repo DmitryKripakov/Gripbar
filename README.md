@@ -70,7 +70,11 @@ Settings > AddOns > Gripbar, or `/grip`:
 
 ## Credits
 
-Gripbar is a fork of **[SNRN Backhand](https://github.com/snrn-Pontus/Backhand)** 0.9.1 by **SillyNameRandomNumber**, released under the MIT License. Most of the core comes from Backhand: the secure paddle bindings, the LT / RT layer driver, native action storage, crossbar paging, the settings page and the diagnostics. Thank you!
+**A huge thank you to SillyNameRandomNumber ([snrn-Pontus](https://github.com/snrn-Pontus)), the author of [SNRN Backhand](https://github.com/snrn-Pontus/Backhand).**
+
+Gripbar is a fork of Backhand 0.9.1 and would not exist without it. Backhand solved the hard parts: getting controller paddles into WoW: Forever at all, the secure paddle bindings that work in combat, the LT / RT layer driver, storing actions in the game's own gamepad action storage, paging the native crossbar, the settings page and the diagnostics. Gripbar builds its layout, profiles and extras on top of that work. Backhand is released under the MIT License, and its copyright notice is kept in [LICENSE](LICENSE).
+
+If you like Gripbar, please also have a look at Backhand and the other SNRN addons: [Rummage](https://github.com/snrn-Pontus/Rummage), [Tally](https://github.com/snrn-Pontus/Tally), [Valet](https://github.com/snrn-Pontus/Valet) and [Grimoire](https://github.com/snrn-Pontus/Grimoire).
 
 The glyph textures (`Media/Glyph*.tga`) and the addon icon are drawn by `tools/glyphs.py`; no game art is copied.
 
