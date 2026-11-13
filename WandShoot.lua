@@ -135,6 +135,7 @@ local status = "off"
 -- native circle-slot ring over it, the size following the button.
 local wandActive = false
 local overlays = {}
+local rbOnTop = false
 
 local function TopX()
     local main = _G.GamepadMainActionBarFrame
@@ -220,7 +221,7 @@ local function EnemyTargeted()
 end
 
 local function UpdateWandIcon()
-    local shown = wandActive and EnemyTargeted()
+    local shown = wandActive and EnemyTargeted() and not rbOnTop
     local frame = ShowOverlay("shoot", shown and TopX() or nil,
         shown and C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(SHOOT_SPELL_ID) or nil)
     if frame then
@@ -292,6 +293,23 @@ local function FindRBX()
 end
 
 local rbIndex
+
+-- Is RB held? Plain (insecure) code has no GetGamePadState, so this asks the
+-- client the same ways the layer detection does: the key, then the mapped
+-- controller state.
+local function RBHeld()
+    if IsKeyDown then
+        local ok, down = pcall(IsKeyDown, "PADRSHOULDER")
+        if ok and down then
+            return true
+        end
+    end
+    local state = ns.GetMappedState and ns.GetMappedState()
+    local raw = C_GamePad and C_GamePad.ButtonBindingToIndex and C_GamePad.ButtonBindingToIndex("PADRSHOULDER")
+    local index = state and raw and ns.GetMappedButtonArrayIndex and ns.GetMappedButtonArrayIndex(state, raw)
+    return index ~= nil and state.buttons[index] == true
+end
+
 local rbPoll = CreateFrame("Frame")
 local rbElapsed = 0
 rbPoll:SetScript("OnUpdate", function(_, elapsed)
@@ -300,21 +318,26 @@ rbPoll:SetScript("OnUpdate", function(_, elapsed)
         return
     end
     rbElapsed = 0
-    local held = false
-    if wandActive and rbIndex and GetGamePadState then
-        local state = GetGamePadState()
-        held = state and state.buttons and state.buttons[rbIndex] == true or false
-    end
-    if held and EnemyTargeted() then
+    local held = wandActive and EnemyTargeted() and RBHeld()
+    local native
+    if held then
         if not (rbX and rbX:IsVisible()) then
-            rbX = FindRBX()
+            -- The shortcut bar's own X, or the top bar's X when the game
+            -- shows the shortcut on that same button.
+            rbX = FindRBX() or TopX()
         end
-        local weapon = GetInventoryItemTexture("player", MAIN_HAND_SLOT)
-            or (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(6603))
-        ShowOverlay("melee", rbX, rbX and weapon or nil)
-    else
-        ShowOverlay("melee", nil, nil)
+        native = rbX
     end
+    -- While RB + X swings, the weapon replaces the Shoot icon (the shortcut
+    -- button sits right over the top X).
+    local onTop = native ~= nil
+    if onTop ~= rbOnTop then
+        rbOnTop = onTop
+        UpdateWandIcon()
+    end
+    local weapon = native and (GetInventoryItemTexture("player", MAIN_HAND_SLOT)
+        or (C_Spell and C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(6603)))
+    ShowOverlay("melee", native, weapon)
 end)
 
 -- Pressed look while X is held, like the native slots and the paddles: 4
