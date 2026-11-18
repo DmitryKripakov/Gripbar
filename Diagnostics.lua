@@ -525,6 +525,138 @@ end
 
 
 
+-- /grip templates: which XML templates the game's crossbar buttons come from,
+-- and whether a button of our own can be made from them (a test button with
+-- an action slot, shown for a few seconds in the middle of the screen).
+local TEMPLATE_HINTS = { "gamepad", "actionbutton", "actionbarbutton" }
+
+local function BuildTemplatesReport()
+    local lines = {}
+    local function Add(text)
+        lines[#lines + 1] = text
+    end
+
+    Add("== XML templates matching gamepad / action button ==")
+    local candidates = {}
+    if C_XMLUtil and type(C_XMLUtil.GetTemplates) == "function" then
+        local ok, templates = pcall(C_XMLUtil.GetTemplates)
+        if ok and type(templates) == "table" then
+            for _, info in ipairs(templates) do
+                local name = type(info) == "table" and info.name or info
+                if type(name) == "string" then
+                    local lower = name:lower()
+                    for _, hint in ipairs(TEMPLATE_HINTS) do
+                        if lower:find(hint, 1, true) then
+                            local kind = type(info) == "table" and info.type or "?"
+                            Add(name .. " [" .. tostring(kind) .. "]")
+                            if lower:find("gamepad", 1, true) and lower:find("button", 1, true) then
+                                candidates[#candidates + 1] = name
+                            end
+                            break
+                        end
+                    end
+                end
+            end
+        else
+            Add("C_XMLUtil.GetTemplates failed: " .. tostring(templates))
+        end
+    else
+        Add("C_XMLUtil.GetTemplates is not available")
+    end
+
+    Add("")
+    Add("== The game's top bar X button ==")
+    local main = _G.GamepadMainActionBarFrame
+    local bars = main and main.PageUnit and main.PageUnit.actionBars
+    local bar = bars and bars.topBar
+    local x = bar and bar.Right and bar.Right.ActionButton1
+    local d = bar and bar.Left and bar.Left.ActionButton1
+    for label, button in pairs({ ["top X"] = x, ["top d-pad left"] = d }) do
+        if button then
+            local mixins = {}
+            for key, value in pairs(button) do
+                if type(value) == "function" and type(key) == "string" and (key:find("^Update") or key:find("^Set") or key:find("Init") or key:find("^On")) then
+                    mixins[#mixins + 1] = key
+                end
+            end
+            table.sort(mixins)
+            Add(string.format("%s: %s, type=%s, action=%s, attr action=%s, slotID=%s, protected=%s",
+                label, tostring(button:GetName()), tostring(button:GetObjectType()), tostring(button.action),
+                tostring(button:GetAttribute("action")), tostring(button.pageUnitSlotID), tostring(button:IsProtected())))
+            Add("  methods: " .. table.concat(mixins, ", "))
+        end
+    end
+
+    Add("")
+    Add("== Test buttons from the candidates (shown for 8 s) ==")
+    if #candidates == 0 then
+        candidates = { "GamepadActionBarButtonTemplate", "GamepadActionButtonTemplate", "GamepadActionBarActionButtonTemplate",
+            "GamepadActionBarCircleButtonTemplate", "ActionBarButtonTemplate" }
+        Add("(no gamepad button templates listed; trying common names)")
+    end
+    local slot = x and x.action
+    local spellSlot
+    for i = 1, 12 do
+        if C_ActionBar.HasAction(i) then
+            spellSlot = i
+            break
+        end
+    end
+    local shown = 0
+    for _, template in ipairs(candidates) do
+        for _, objectType in ipairs({ "CheckButton", "Button" }) do
+            local ok, button = pcall(CreateFrame, objectType, "GripbarTemplateTest" .. shown, UIParent, template .. ",SecureActionButtonTemplate")
+            if ok and button then
+                local keys = {}
+                for _, key in ipairs({ "icon", "SlotArt", "CircleMask", "NormalTexture", "cooldown", "RangeIndicator", "ButtonIcon", "TextOverlayContainer" }) do
+                    if button[key] then
+                        keys[#keys + 1] = key
+                    end
+                end
+                local setOk, setErr = pcall(function()
+                    button:SetAttribute("type", "action")
+                    button:SetAttribute("action", spellSlot or slot or 1)
+                    button:ClearAllPoints()
+                    button:SetPoint("CENTER", UIParent, "CENTER", -150 + shown * 60, 120)
+                    if button.SetSize then
+                        local w = button:GetWidth()
+                        if not w or w < 4 then
+                            button:SetSize(48, 48)
+                        end
+                    end
+                    if button.UpdateAction then button:UpdateAction(true) end
+                    if button.Update then button:Update() end
+                    button:Show()
+                end)
+                Add(string.format("%s (%s): created; regions %s; set up %s%s", template, objectType,
+                    table.concat(keys, " "), setOk and "ok" or "failed", setOk and "" or (": " .. tostring(setErr))))
+                shown = shown + 1
+                C_Timer.After(8, function()
+                    button:Hide()
+                end)
+                break
+            elseif objectType == "Button" then
+                Add(template .. ": not created (" .. tostring(button) .. ")")
+            end
+        end
+    end
+    Add("Test action slot: " .. tostring(spellSlot or slot))
+    return table.concat(lines, "\n")
+end
+
+local function ShowTemplatesReport()
+    if InCombatLockdown() then
+        Print("Run /grip templates out of combat.")
+        return
+    end
+    local frame = EnsureDiagnosticsFrame()
+    frame.builder = BuildTemplatesReport
+    frame.title:SetText("Gripbar button templates")
+    frame:Show()
+    frame:Refresh()
+end
+
 ns.PrintDiagnostics = PrintDiagnostics
+ns.ShowTemplatesReport = ShowTemplatesReport
 ns.ShowDiagnosticsFrame = ShowDiagnosticsFrame
 ns.ShowAtlasReport = ShowAtlasReport
