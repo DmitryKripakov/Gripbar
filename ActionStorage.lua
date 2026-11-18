@@ -272,10 +272,12 @@ local function ForEachReservedSlot(callback)
     end
 end
 
--- The cells of our own top bar X / Y / B / A (TopFace.lua): 1-4 the normal
--- cells, 5-8 the ones used while a living enemy is targeted. Kept once
--- chosen; new ones are free slots no crossbar page or paddle uses.
-local TOP_FACE_SLOT_COUNT = 8
+-- The cells of our own top bar X / Y / B / A (TopFace.lua), per face button
+-- in X, Y, B, A order: 1-4 normal, 5-8 while a living enemy is targeted,
+-- 9-12 with LB held, 13-16 with RB held. Kept once chosen (a shorter list
+-- from an older version keeps its cells and grows); new ones are free slots
+-- no crossbar page or paddle uses.
+local TOP_FACE_SLOT_COUNT = 16
 
 local function ReserveTopFaceSlots()
     ns.topFaceSlots = nil
@@ -287,42 +289,44 @@ local function ReserveTopFaceSlots()
     ForEachReservedSlot(function(slot)
         used[slot] = true
     end)
-    local saved = GripbarCharDB.topFaceSlots
-    local ok = type(saved) == "table" and #saved == TOP_FACE_SLOT_COUNT
-    if ok then
-        local seen = {}
-        for _, slot in ipairs(saved) do
-            if type(slot) ~= "number" or used[slot] or seen[slot] or not IsValidNativeStorageSlot(slot) then
-                ok = false
-                break
-            end
-            seen[slot] = true
+    local saved = type(GripbarCharDB.topFaceSlots) == "table" and GripbarCharDB.topFaceSlots or {}
+    local kept = {}
+    for _, slot in ipairs(saved) do
+        if type(slot) ~= "number" or used[slot] or not IsValidNativeStorageSlot(slot) or #kept >= TOP_FACE_SLOT_COUNT then
+            -- A broken list starts over.
+            kept = {}
+            break
         end
+        kept[#kept + 1] = slot
+        used[slot] = true
     end
-    if not ok then
+    if #kept < TOP_FACE_SLOT_COUNT then
         local valid = DiscoverNativeStorageSlots()
         if not valid then
             ns.topFaceStatus = "native storage API unavailable"
             return
         end
         local nativeUsed = GetNativeCrossbarSlots(GetWantedPageCount())
-        saved = {}
+        local extra = {}
         for i = #valid, 1, -1 do
             local slot = valid[i]
             if not used[slot] and not nativeUsed[slot] and not C_ActionBar.HasAction(slot) then
-                table.insert(saved, 1, slot)
-                if #saved == TOP_FACE_SLOT_COUNT then
+                table.insert(extra, 1, slot)
+                if #kept + #extra == TOP_FACE_SLOT_COUNT then
                     break
                 end
             end
         end
-        if #saved ~= TOP_FACE_SLOT_COUNT then
+        if #kept + #extra ~= TOP_FACE_SLOT_COUNT then
             ns.topFaceStatus = "not enough free native slots"
             return
         end
-        GripbarCharDB.topFaceSlots = saved
+        for _, slot in ipairs(extra) do
+            kept[#kept + 1] = slot
+        end
+        GripbarCharDB.topFaceSlots = kept
     end
-    ns.topFaceSlots = saved
+    ns.topFaceSlots = kept
     ns.topFaceStatus = "ok"
 end
 

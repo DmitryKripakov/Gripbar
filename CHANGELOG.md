@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- Own X / Y / B / A on the top bar: the top bar's face buttons take actions of your own, on buttons from the game's own crossbar template. Each has a normal cell and one for a living enemy target; empty cells, LT / RT and LB / RB + a face button stay the game's (`/grip face`).
+- Own X / Y / B / A on the top bar: the top bar's face buttons and the LB / RB targeting bars take actions of your own. Four cells per face button: normal, living enemy targeted, LB held, RB held; empty cells and LT / RT + a face button stay the game's (`/grip face`, `/grip face edit`).
+- Debug log: Lua errors, blocked actions and Gripbar messages kept in SavedVariables (`/grip debug`).
 - Game actions: the top bar's Interact, Inspect, Back and Jump as macros to put on any slot, with the game's live icon (`/grip actions`).
 - Removed: swap melee and wand (put Shoot or any spell on X's enemy cell instead).
 

@@ -206,10 +206,21 @@ local function RegisterSettings()
     AddCheckbox(
         "topFace",
         "Own X / Y / B / A on the top bar",
-        "The top bar's face buttons take actions of your own, on buttons drawn by the game's own template. Each has two cells: a normal one, and one used while a living enemy is targeted (drop an action on it with an enemy targeted; empty, the normal cell is used). A button showing nothing of yours stays the game's (Interact, Inspect, Back, Jump); LT / RT and LB / RB + a face button stay the game's. Also: /grip face.",
+        "The top bar's face buttons take actions of your own, drawn like the game's. Each has four cells: normal; while a living enemy is targeted (empty: the normal one); with LB held; with RB held (over the game's targeting bars). A cell holding nothing leaves the game's own button (Interact, Inspect, Back, Jump, the targeting shortcuts). LT / RT + a face button stay the game's. Also: /grip face.",
         function()
             ns.ApplyTopFace()
         end
+    )
+
+    AddButton(
+        function()
+            return "Cells shown: " .. (ns.GetTopFaceEditLabel and ns.GetTopFaceEditLabel() or "as in play")
+        end,
+        "Next",
+        function()
+            ns.SetTopFaceEditMode()
+        end,
+        "Shows one kind of cells on the top bar's X / Y / B / A to drop actions on: normal, enemy (no target needed), LB, RB (no bumper needed), then back to play. Also: /grip face edit [normal | enemy | lb | rb | off]."
     )
 
     AddButton(

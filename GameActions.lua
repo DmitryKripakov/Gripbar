@@ -351,7 +351,7 @@ local function UpdateSlotIcons()
     if not ns.ForEachButton then
         return
     end
-    ns.ForEachButton(function(button)
+    ns.ForEachVisualButton(function(button)
         if button.gameAction then
             ApplySlotIcon(button)
         end

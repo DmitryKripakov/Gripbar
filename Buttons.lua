@@ -10,6 +10,29 @@ local NATIVE_CVAR_PROMPTS = ns.NATIVE_CVAR_PROMPTS
 local PANELS = ns.PANELS
 local panelFrames = ns.panelFrames
 local buttons = ns.buttons
+
+-- Every slot whose art the addon draws: the paddle slots and the extra
+-- displays registered by other modules (the top bar's own X / Y / B / A).
+-- Only for art: the extra displays have no panel, paddle or page.
+local extraDisplays = {}
+
+local function ForEachVisualButton(func)
+    for panelIndex = 1, ns.PANEL_COUNT do
+        for paddleIndex = 1, ns.PADDLE_COUNT do
+            local button = buttons[panelIndex] and buttons[panelIndex][paddleIndex]
+            if button then
+                func(button)
+            end
+        end
+    end
+    for _, display in ipairs(extraDisplays) do
+        func(display)
+    end
+end
+
+local function RegisterExtraDisplay(display)
+    extraDisplays[#extraDisplays + 1] = display
+end
 local focusRouting = ns.focusRouting
 local Print = ns.Print
 local GetMedia = ns.GetMedia
@@ -28,6 +51,10 @@ end
 
 local function SetEmptyGlyphShown(button, shown)
     local visual = button.visual
+    if button.isFace then
+        -- The game's face glyph is the slot art under the icon.
+        return
+    end
     local text = UsesTextGlyph(button.paddleIndex)
     if visual.emptyLabel then
         local alpha = tonumber(GripbarDB and GripbarDB.emptyLabelOpacity) or 1
@@ -371,10 +398,8 @@ end
 -- Auto Attack and Auto Shot blink at ATTACK_BUTTON_FLASH_TIME, like
 -- ActionBarActionButtonMixin:OnUpdate. Driven by the addon's OnUpdate.
 local function UpdateActionFlashes(elapsed)
-    for panelIndex = 1, PANEL_COUNT do
-        for paddleIndex = 1, PADDLE_COUNT do
-            local button = buttons[panelIndex] and buttons[panelIndex][paddleIndex]
-            if button and button.flashing then
+    ForEachVisualButton(function(button)
+            if button.flashing then
                 local flashTime = button.flashTime - elapsed
                 if flashTime <= 0 then
                     local overtime = -flashTime
@@ -387,8 +412,7 @@ local function UpdateActionFlashes(elapsed)
                 end
                 button.flashTime = flashTime
             end
-        end
-    end
+    end)
 end
 
 -- Range feedback is polled with IsActionInRange instead of asking the client
@@ -733,19 +757,14 @@ end
 local function SetSpellAlertTest(enabled)
     spellAlertTest = enabled == true
     local shown, failed = 0, 0
-    for panelIndex = 1, PANEL_COUNT do
-        for paddleIndex = 1, PADDLE_COUNT do
-            local button = buttons[panelIndex] and buttons[panelIndex][paddleIndex]
-            if button then
-                UpdateSpellAlert(button)
-                if button.spellAlertShown then
-                    shown = shown + 1
-                elseif spellAlertTest and button.hasAction and button.visual.spellAlertUnavailable then
-                    failed = failed + 1
-                end
-            end
+    ForEachVisualButton(function(button)
+        UpdateSpellAlert(button)
+        if button.spellAlertShown then
+            shown = shown + 1
+        elseif spellAlertTest and button.hasAction and button.visual.spellAlertUnavailable then
+            failed = failed + 1
         end
-    end
+    end)
     return shown, failed
 end
 
@@ -767,14 +786,7 @@ local function OnSpellAlertEvent(spellID, shown)
     table.insert(history, 1, spellAlertStats.last)
     history[SPELL_ALERT_HISTORY_SIZE + 1] = nil
 
-    for panelIndex = 1, PANEL_COUNT do
-        for paddleIndex = 1, PADDLE_COUNT do
-            local button = buttons[panelIndex] and buttons[panelIndex][paddleIndex]
-            if button then
-                UpdateSpellAlert(button)
-            end
-        end
-    end
+    ForEachVisualButton(UpdateSpellAlert)
 end
 
 -- Lines for /grip diag: what each filled slot resolves to and whether
@@ -826,6 +838,10 @@ local function ShouldShowPrompts()
 end
 
 local function UpdatePromptVisibility(button)
+    if button.isFace then
+        button.visual.prompt:Hide()
+        return
+    end
     local panel = panelFrames[button.panelIndex]
     local shown = panel ~= nil and panel.isFocused == true and button.hasAction == true and ShouldShowPrompts()
     local text = UsesTextGlyph(button.paddleIndex)
@@ -1306,22 +1322,10 @@ local function SetButtonPushed(button, pushed)
     LayoutButtonVisual(button)
 end
 
-local function CreateActionButton(panelIndex, paddleIndex, panel)
-    local name = string.format("GripbarButton%d_%d", panelIndex, paddleIndex)
-    local button = CreateFrame("Button", name, panel, "SecureActionButtonTemplate")
-    button.panelIndex = panelIndex
-    button.paddleIndex = paddleIndex
-    button.pushed = false
-    button.hasAction = false
-    button.flashing = false
-    button.flashTime = 0
-    button:SetSize(LAYOUT.BUTTON_SIZE_EXPANDED, LAYOUT.BUTTON_SIZE_EXPANDED)
-    button:SetFrameLevel(panel:GetFrameLevel() + 10)
-    button:RegisterForClicks("AnyUp", "AnyDown")
-    button:RegisterForDrag("LeftButton")
-    -- Native gamepad action buttons trigger on press rather than on release.
-    button:SetAttribute("useOnKeyDown", true)
-
+-- The art of a slot: a plain frame (resizable and movable in combat) with
+-- the native ring, icon, cooldowns, count, glow and states. Paddle slots
+-- pass their paddle (its glyph); the top bar's own X / Y / B / A pass none.
+local function BuildSlotVisual(button, panel, paddleIndex)
     -- The secure button is only the click target. All art lives on a plain
     -- frame so it can be resized and re-anchored while in combat.
     local visual = CreateFrame("Frame", nil, panel)
@@ -1360,7 +1364,7 @@ local function CreateActionButton(panelIndex, paddleIndex, panel)
     -- Empty slots show the paddle glyph the way native slots show their face button.
     visual.emptyGlyph = visual:CreateTexture(nil, "ARTWORK", nil, 0)
     visual.emptyGlyph:SetPoint("CENTER")
-    visual.emptyGlyph:SetTexture(GetPaddleTexture(paddleIndex))
+    visual.emptyGlyph:SetTexture((paddleIndex and GetPaddleTexture(paddleIndex) or nil))
     visual.emptyGlyph.artAvailable = true
     visual.emptyGlyph:SetAlpha(0.9)
 
@@ -1472,7 +1476,7 @@ local function CreateActionButton(panelIndex, paddleIndex, panel)
     visual.prompt = visual:CreateTexture(nil, "OVERLAY", nil, 2)
     visual.prompt:SetSize(LAYOUT.PROMPT_ICON_SIZE, LAYOUT.PROMPT_ICON_SIZE)
     visual.prompt:SetPoint("TOPRIGHT", -1, -1)
-    visual.prompt:SetTexture(GetPaddleTexture(paddleIndex))
+    visual.prompt:SetTexture((paddleIndex and GetPaddleTexture(paddleIndex) or nil))
     visual.prompt.artAvailable = true
     visual.prompt:Hide()
 
@@ -1504,6 +1508,26 @@ local function CreateActionButton(panelIndex, paddleIndex, panel)
     button.chargeCooldown = visual.chargeCooldown
     button.lossOfControlCooldown = visual.lossOfControlCooldown
     button.count = visual.count
+    return visual
+end
+
+local function CreateActionButton(panelIndex, paddleIndex, panel)
+    local name = string.format("GripbarButton%d_%d", panelIndex, paddleIndex)
+    local button = CreateFrame("Button", name, panel, "SecureActionButtonTemplate")
+    button.panelIndex = panelIndex
+    button.paddleIndex = paddleIndex
+    button.pushed = false
+    button.hasAction = false
+    button.flashing = false
+    button.flashTime = 0
+    button:SetSize(LAYOUT.BUTTON_SIZE_EXPANDED, LAYOUT.BUTTON_SIZE_EXPANDED)
+    button:SetFrameLevel(panel:GetFrameLevel() + 10)
+    button:RegisterForClicks("AnyUp", "AnyDown")
+    button:RegisterForDrag("LeftButton")
+    -- Native gamepad action buttons trigger on press rather than on release.
+    button:SetAttribute("useOnKeyDown", true)
+
+    BuildSlotVisual(button, panel, paddleIndex)
 
     button:SetScript("OnEnter", ShowTooltip)
     button:SetScript("OnLeave", function(self)
@@ -1548,7 +1572,7 @@ end
 
 -- Visual-only refresh; safe to run in combat and on high-frequency events.
 local function UpdateAllButtonVisuals()
-    ForEachButton(UpdateButtonVisual)
+    ForEachVisualButton(UpdateButtonVisual)
 end
 
 -- Full refresh including secure attributes. Deferred while in combat.
@@ -1578,6 +1602,9 @@ ns.LayoutButtonVisual = LayoutButtonVisual
 ns.SetButtonPushed = SetButtonPushed
 ns.CreateActionButton = CreateActionButton
 ns.ForEachButton = ForEachButton
+ns.ForEachVisualButton = ForEachVisualButton
+ns.RegisterExtraDisplay = RegisterExtraDisplay
+ns.BuildSlotVisual = BuildSlotVisual
 ns.UpdateAllButtonVisuals = UpdateAllButtonVisuals
 ns.RefreshButtons = RefreshButtons
 

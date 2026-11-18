@@ -84,7 +84,7 @@ local function PollRangeIndicators()
     if type(IsActionInRange) ~= "function" then
         return
     end
-    ForEachButton(function(button)
+    ns.ForEachVisualButton(function(button)
         if button.rangeCheckEnabled and button.hasAction and button.actionSlot then
             local inRange = SafeCall(IsActionInRange, button.actionSlot)
             if IsSecret(inRange) then
@@ -204,7 +204,8 @@ local function PrintHelp()
     Print("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars")
     Print("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it")
     Print("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot")
-    Print("/grip face - toggle: your own actions on the top bar's X / Y / B / A (a normal cell and one for a living enemy)")
+    Print("/grip face - toggle: your own actions on the top bar's X / Y / B / A (cells: normal, living enemy targeted, LB held, RB held)")
+    Print("/grip face edit [normal | enemy | lb | rb | off] - show one kind of cells on the top bar to drop actions on (no target or bumper needed)")
     Print("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)")
     Print("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)")
     Print("/grip assign [1-4] - assign one paddle, or all four in order, by pressing it")
@@ -234,7 +235,7 @@ SlashCmdList.GRIPBAR = function(message)
     elseif command == "actions" or command == "game" then
         ns.ToggleGameActions()
     elseif command == "face" or command == "topface" then
-        ns.ToggleTopFace()
+        ns.HandleTopFaceCommand(args)
     elseif command == "binds" or command == "bind" or command == "long" then
         ns.HandleBindsCommand(args)
     elseif command == "atlas" or command == "art" then
@@ -548,7 +549,7 @@ addon:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
             if ours and not InCombatLockdown() then
                 RefreshButtons()
             end
-            ForEachButton(function(button)
+            ns.ForEachVisualButton(function(button)
                 if button.actionSlot == changedSlot then
                     UpdateButtonVisual(button)
                 end
@@ -566,7 +567,7 @@ addon:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         local changedSlot = not IsSecret(arg1) and tonumber(arg1) or nil
         if changedSlot then
             local secret = IsSecret(arg2) or IsSecret(arg3)
-            ForEachButton(function(button)
+            ns.ForEachVisualButton(function(button)
                 if button.actionSlot == changedSlot then
                     if secret then
                         UpdateRangeIndicator(button, false, false)

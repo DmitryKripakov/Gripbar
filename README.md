@@ -22,7 +22,7 @@ Forever's crossbar gives you the d-pad and the face buttons on four layers (no t
   | Razer Wolverine / Kishi (`razer`) | M1, M2 | M3, M4 |
   | Generic (`generic`) | P1, P2 | P3, P4 |
 
-- **Own X / Y / B / A on the top bar.** The top bar's face buttons (the game's fixed Interact, Inspect, Back, Jump) take actions of your own, drawn by the game's own button template. Each has a normal cell and one used while a living enemy is targeted, so X can interact as usual and cast your own spell or Shoot on an enemy. Empty cells, LT / RT and LB / RB + a face button stay the game's (`/grip face`).
+- **Own X / Y / B / A on the top bar.** The top bar's face buttons (the game's fixed Interact, Inspect, Back, Jump) and the LB / RB targeting bars take actions of your own, drawn like the game's. Each face button has four cells: normal, living enemy targeted (so X can interact as usual and cast your own spell or Shoot on an enemy), LB held and RB held (say, Back on RB + B). Empty cells and LT / RT + a face button stay the game's. `/grip face edit` shows one kind of cells to set them up without a target or a bumper.
 - **Page binds.** Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on whichever LT / RT layer is held. Handy with Steam Input long presses on rarely used buttons.
 - **Game actions** (`/grip actions`): drag onto any slot, as "GB ..." macros:
   - the game's fixed buttons: Interact, Inspect, Back, Jump and the LB / RB bars' shortcut buttons. On Gripbar slots they show the game's live icon (the smart interact's pickaxe, hand, gear...) and handle holding;

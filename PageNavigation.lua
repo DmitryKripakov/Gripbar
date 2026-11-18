@@ -507,6 +507,10 @@ hookFrame:SetScript("OnEvent", function(_, event)
 end)
 
 local function GetPaddleBehavior(paddleIndex)
+    -- Not a paddle (the top bar's own X / Y / B / A): plain actions.
+    if not paddleIndex then
+        return behaviorByValue.action
+    end
     local value = GripbarDB and GripbarDB.paddleBehaviors and GripbarDB.paddleBehaviors["P" .. paddleIndex]
     return behaviorByValue[value] or behaviorByValue.action
 end
