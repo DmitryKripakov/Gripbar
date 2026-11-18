@@ -205,6 +205,7 @@ local function PrintHelp()
     Print("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot")
     Print("/grip wand - toggle: swap melee and wand (X shoots the wand, RB + X swings) on a living enemy")
     Print("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)")
+    Print("/grip clone - copies of the game's crossbar from its own templates, shown for 20 s, with a comparison report")
     Print("/grip templates - copyable report of the game's crossbar button templates, with test buttons")
     Print("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)")
     Print("/grip assign [1-4] - assign one paddle, or all four in order, by pressing it")
@@ -239,6 +240,8 @@ SlashCmdList.GRIPBAR = function(message)
         ns.HandleBindsCommand(args)
     elseif command == "atlas" or command == "art" then
         ns.ShowAtlasReport()
+    elseif command == "clone" then
+        ns.ShowCloneReport()
     elseif command == "templates" then
         ns.ShowTemplatesReport()
     elseif command == "spread" then
