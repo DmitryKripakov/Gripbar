@@ -262,11 +262,6 @@ local function GetNativeSlot(panelIndex, paddleIndex, page)
     return list[FlatButtonIndex(panelIndex, paddleIndex)]
 end
 
-local function InitializeNativeStorage()
-    InitializePageOneStorage()
-    ReservePageSlots()
-end
-
 -- Every reserved slot on every page, for overlap checks.
 local function ForEachReservedSlot(callback)
     for page = 1, ns.pageCount or 1 do
@@ -275,6 +270,66 @@ local function ForEachReservedSlot(callback)
             callback(slot, page)
         end
     end
+end
+
+-- The cells of our own top bar X / Y / B / A (TopFace.lua): 1-4 the normal
+-- cells, 5-8 the ones used while a living enemy is targeted. Kept once
+-- chosen; new ones are free slots no crossbar page or paddle uses.
+local TOP_FACE_SLOT_COUNT = 8
+
+local function ReserveTopFaceSlots()
+    ns.topFaceSlots = nil
+    if not ns.nativeStorageEnabled then
+        ns.topFaceStatus = "needs native storage"
+        return
+    end
+    local used = {}
+    ForEachReservedSlot(function(slot)
+        used[slot] = true
+    end)
+    local saved = GripbarCharDB.topFaceSlots
+    local ok = type(saved) == "table" and #saved == TOP_FACE_SLOT_COUNT
+    if ok then
+        local seen = {}
+        for _, slot in ipairs(saved) do
+            if type(slot) ~= "number" or used[slot] or seen[slot] or not IsValidNativeStorageSlot(slot) then
+                ok = false
+                break
+            end
+            seen[slot] = true
+        end
+    end
+    if not ok then
+        local valid = DiscoverNativeStorageSlots()
+        if not valid then
+            ns.topFaceStatus = "native storage API unavailable"
+            return
+        end
+        local nativeUsed = GetNativeCrossbarSlots(GetWantedPageCount())
+        saved = {}
+        for i = #valid, 1, -1 do
+            local slot = valid[i]
+            if not used[slot] and not nativeUsed[slot] and not C_ActionBar.HasAction(slot) then
+                table.insert(saved, 1, slot)
+                if #saved == TOP_FACE_SLOT_COUNT then
+                    break
+                end
+            end
+        end
+        if #saved ~= TOP_FACE_SLOT_COUNT then
+            ns.topFaceStatus = "not enough free native slots"
+            return
+        end
+        GripbarCharDB.topFaceSlots = saved
+    end
+    ns.topFaceSlots = saved
+    ns.topFaceStatus = "ok"
+end
+
+local function InitializeNativeStorage()
+    InitializePageOneStorage()
+    ReservePageSlots()
+    ReserveTopFaceSlots()
 end
 
 ns.DiscoverNativeStorageSlots = DiscoverNativeStorageSlots

@@ -203,10 +203,8 @@ local function PrintHelp()
     Print("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars")
     Print("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it")
     Print("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot")
-    Print("/grip wand - toggle: swap melee and wand (X shoots the wand, RB + X swings) on a living enemy")
+    Print("/grip face - toggle: your own actions on the top bar's X / Y / B / A (a normal cell and one for a living enemy)")
     Print("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)")
-    Print("/grip clone - for 20 s, copies from the game's own button template in place of the top X / Y / B / A, with a comparison report")
-    Print("/grip templates - copyable report of the game's crossbar button templates, with test buttons")
     Print("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)")
     Print("/grip assign [1-4] - assign one paddle, or all four in order, by pressing it")
     Print("/grip keys [P1 P2 P3 P4 | reset] - show or set the inputs, e.g. /grip keys F13 F14 F15 F16")
@@ -234,16 +232,12 @@ SlashCmdList.GRIPBAR = function(message)
         ns.HandleBadgeCommand(args)
     elseif command == "actions" or command == "game" then
         ns.ToggleGameActions()
-    elseif command == "wand" or command == "wandshoot" then
-        ns.ToggleWandShoot()
+    elseif command == "face" or command == "topface" then
+        ns.ToggleTopFace()
     elseif command == "binds" or command == "bind" or command == "long" then
         ns.HandleBindsCommand(args)
     elseif command == "atlas" or command == "art" then
         ns.ShowAtlasReport()
-    elseif command == "clone" then
-        ns.ShowCloneReport()
-    elseif command == "templates" then
-        ns.ShowTemplatesReport()
     elseif command == "spread" then
         -- /grip spread [top|bottom] <x> <y>, or /grip spread reset
         local option = (args[2] or ""):lower()

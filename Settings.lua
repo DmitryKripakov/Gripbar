@@ -204,11 +204,11 @@ local function RegisterSettings()
     AddSection("Combat")
 
     AddCheckbox(
-        "wandShoot",
-        "Swap melee and wand (X / RB + X)",
-        "With a wand in the ranged slot and a living enemy targeted, X shoots the wand and RB + X swings the melee weapon: the game's two are swapped. On a corpse, an NPC or an object X stays the game's own press; LT / RT + X still press that layer's crossbar X. Works on every client language. Turn off Improved Forever's \"Square shoots the wand\" if you use that addon. Also: /grip wand.",
+        "topFace",
+        "Own X / Y / B / A on the top bar",
+        "The top bar's face buttons take actions of your own, on buttons drawn by the game's own template. Each has two cells: a normal one, and one used while a living enemy is targeted (drop an action on it with an enemy targeted; empty, the normal cell is used). A button showing nothing of yours stays the game's (Interact, Inspect, Back, Jump); LT / RT and LB / RB + a face button stay the game's. Also: /grip face.",
         function()
-            ns.ApplyWandShoot()
+            ns.ApplyTopFace()
         end
     )
 

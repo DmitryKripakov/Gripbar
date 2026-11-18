@@ -22,7 +22,7 @@ Forever's crossbar gives you the d-pad and the face buttons on four layers (no t
   | Razer Wolverine / Kishi (`razer`) | M1, M2 | M3, M4 |
   | Generic (`generic`) | P1, P2 | P3, P4 |
 
-- **Swap melee and wand.** With a wand equipped and a living enemy targeted, X shoots the wand and RB + X swings the melee weapon (the game has them the other way round). Looting, NPCs and LT / RT + X stay the game's. Works on every client language.
+- **Own X / Y / B / A on the top bar.** The top bar's face buttons (the game's fixed Interact, Inspect, Back, Jump) take actions of your own, drawn by the game's own button template. Each has a normal cell and one used while a living enemy is targeted, so X can interact as usual and cast your own spell or Shoot on an enemy. Empty cells, LT / RT and LB / RB + a face button stay the game's (`/grip face`).
 - **Page binds.** Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on whichever LT / RT layer is held. Handy with Steam Input long presses on rarely used buttons.
 - **Game actions** (`/grip actions`): drag onto any slot, as "GB ..." macros:
   - the game's fixed buttons: Interact, Inspect, Back, Jump and the LB / RB bars' shortcut buttons. On Gripbar slots they show the game's live icon (the smart interact's pickaxe, hand, gear...) and handle holding;
@@ -43,7 +43,7 @@ Forever's crossbar gives you the d-pad and the face buttons on four layers (no t
 
 Settings > AddOns > Gripbar, or `/grip`:
 
-- **Combat:** swap melee and wand.
+- **Combat:** own X / Y / B / A on the top bar, game actions.
 - **HUD:** slot size, inactive panel opacity, horizontal / vertical spread of the top and bottom rows, native badge offsets.
 - **Paddles:** controller profile, each paddle's input and what it does, setup guide.
 - **Page binds:** keys for pages 2 and 3.
@@ -61,7 +61,7 @@ Settings > AddOns > Gripbar, or `/grip`:
 | `/grip spread [top\|bottom] [x y] \| reset` | Slot distance from the bar centre |
 | `/grip badge [lt\|rt\|both] [x y \| reset]` | Move the native trigger badges |
 | `/grip binds [assign <2\|3> \| clear [2\|3]]` | Page 2 / 3 binds |
-| `/grip wand` | Toggle the melee / wand swap |
+| `/grip face` | Toggle your own actions on the top bar's X / Y / B / A |
 | `/grip clear <base\|lt\|rt\|both> <1-4>` | Clear one slot |
 | `/grip guide` | Setup guide |
 | `/grip diag [copy]` | Diagnostics |
@@ -72,7 +72,6 @@ Settings > AddOns > Gripbar, or `/grip`:
 - Built for **WoW: Forever** (Interface 16001) and its native gamepad crossbar; it does nothing on other clients.
 - Actions live in the game's own gamepad action storage, per character. Settings are account-wide.
 - Do not run it together with SNRN Backhand: both would bind the same keys.
-- If you use Improved Forever, turn off its "Square shoots the wand" when you use the swap here.
 
 ## Credits
 

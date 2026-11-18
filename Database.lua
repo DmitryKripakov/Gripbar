@@ -87,8 +87,10 @@ local function EnsureDatabase()
     db.emptyLabelOpacity = 1
     db.promptLabelOpacity = 0
 
-    -- Combat
-    Default(db, "wandShoot", false)
+    -- Combat: own actions on the top bar's X / Y / B / A (TopFace.lua).
+    Default(db, "topFace", false)
+    -- Retired: the melee / wand swap (X takes any action of your own now).
+    db.wandShoot = nil
 
     -- Controller and paddles
     if type(db.controllerProfile) ~= "string" then
