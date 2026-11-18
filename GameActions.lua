@@ -365,33 +365,38 @@ end
 -- When the game redraws the button it gets the live picture again; when the
 -- slot holds something else the game draws its own as usual.
 ---------------------------------------------------------------------------
-local nativeButtons, lastScan = nil, -10
+-- The crossbar's buttons are listed again only when something may have
+-- moved (a slot, a page, a stance, macros, entering the world; and a slow
+-- safety pass); in between, every 0.1 s only the few slots that hold one of
+-- our buttons are looked at.
 local swapped = {}          -- game button -> the picture we put in
+local watched = {}          -- { button = game button, slot = its slot }
+local dirty = true
+local sinceRebuild = 0
+
+local function MarkDirty()
+    dirty = true
+end
 
 local function NativeActionButtons()
-    local now = GetTime()
-    if nativeButtons and now - lastScan < 5 then
-        return nativeButtons
-    end
-    lastScan = now
-    nativeButtons = {}
+    local list = {}
     local unit = PageUnit()
     if not unit then
-        return nativeButtons
+        return list
     end
     local function Scan(frame, depth)
         if depth > 8 then
             return
         end
         if frame:IsObjectType("Button") and frame.icon and frame.icon.SetTexture then
-            nativeButtons[#nativeButtons + 1] = frame
+            list[#list + 1] = frame
         end
         for _, child in ipairs({ frame:GetChildren() }) do
             Scan(child, depth + 1)
         end
     end
     Scan(unit, 0)
-    return nativeButtons
+    return list
 end
 
 local function CurrentPicture(region, kind)
@@ -401,37 +406,67 @@ local function CurrentPicture(region, kind)
     return region:GetTexture()
 end
 
+-- Lets go of a game button: its own picture comes back with its next
+-- redraw, with its own crop.
+local function Release(button)
+    local mark = swapped[button]
+    swapped[button] = nil
+    if mark and mark.coords and #mark.coords >= 4 then
+        button.icon:SetTexCoord(unpack(mark.coords))
+    end
+end
+
+local function Rebuild()
+    dirty = false
+    sinceRebuild = 0
+    local keep = {}
+    wipe(watched)
+    for _, button in ipairs(NativeActionButtons()) do
+        local slot = button.action
+        local def = type(slot) == "number" and slot > 0 and ForSlot(slot) or nil
+        if def and def.body == nil then
+            watched[#watched + 1] = { button = button, slot = slot, def = def }
+            keep[button] = true
+        end
+    end
+    for button in pairs(swapped) do
+        if not keep[button] then
+            Release(button)
+        end
+    end
+end
+
+local function Paint(entry)
+    local button, region = entry.button, entry.button.icon
+    local kind, value = LiveIcon(entry.def)
+    local mark = swapped[button]
+    if not mark or mark.value ~= value or mark.applied ~= CurrentPicture(region, kind) then
+        -- The game's own crop of the icon, put back when we let go.
+        local coords = mark and mark.coords or { region:GetTexCoord() }
+        SetIcon(region, kind, value)
+        region:SetTexCoord(0, 1, 0, 1)
+        swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = coords }
+    end
+end
+
 local nativeElapsed = 0
 local function UpdateNativeIcons(elapsed)
     nativeElapsed = nativeElapsed + (elapsed or 0)
+    sinceRebuild = sinceRebuild + (elapsed or 0)
     if nativeElapsed < 0.1 then
         return
     end
     nativeElapsed = 0
-    for _, button in ipairs(NativeActionButtons()) do
-        local slot = button.action
-        local def = type(slot) == "number" and slot > 0 and ForSlot(slot) or nil
-        local region = button.icon
-        if def and def.body == nil then
-            local kind, value = LiveIcon(def)
-            local mark = swapped[button]
-            local current = CurrentPicture(region, kind)
-            if not mark or mark.value ~= value or mark.applied ~= current then
-                -- The game's own crop of the icon, put back when we let go.
-                local coords = mark and mark.coords or { region:GetTexCoord() }
-                SetIcon(region, kind, value)
-                region:SetTexCoord(0, 1, 0, 1)
-                swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = coords }
-            end
-        elseif swapped[button] then
-            -- Not ours any more: the game's own picture comes back with its
-            -- next redraw, with its own crop.
-            local coords = swapped[button].coords
-            swapped[button] = nil
-            if coords and #coords >= 4 then
-                region:SetTexCoord(unpack(coords))
-            end
+    if dirty or sinceRebuild > 10 then
+        Rebuild()
+    end
+    for _, entry in ipairs(watched) do
+        -- A slot that moved (a page turned without an event we saw): list again.
+        if entry.button.action ~= entry.slot then
+            dirty = true
+            return
         end
+        Paint(entry)
     end
 end
 
@@ -439,6 +474,24 @@ local nativeFrame = CreateFrame("Frame")
 nativeFrame:SetScript("OnUpdate", function(_, elapsed)
     UpdateNativeIcons(elapsed)
 end)
+for _, event in ipairs({ "ACTIONBAR_SLOT_CHANGED", "ACTIONBAR_PAGE_CHANGED", "UPDATE_BONUS_ACTIONBAR",
+    "UPDATE_SHAPESHIFT_FORM", "UPDATE_MACROS", "PLAYER_ENTERING_WORLD" }) do
+    pcall(nativeFrame.RegisterEvent, nativeFrame, event)
+end
+nativeFrame:SetScript("OnEvent", MarkDirty)
+
+-- Every page turn of the crossbar goes through SetCurrentPage.
+local pageHooked = false
+local function HookPages()
+    local unit = PageUnit()
+    if not pageHooked and unit and type(unit.SetCurrentPage) == "function" then
+        hooksecurefunc(unit, "SetCurrentPage", MarkDirty)
+        pageHooked = true
+    end
+end
+local hookFrame = CreateFrame("Frame")
+hookFrame:RegisterEvent("PLAYER_LOGIN")
+hookFrame:SetScript("OnEvent", HookPages)
 
 ---------------------------------------------------------------------------
 -- The picker: every action as an icon to drag (or click) onto a slot
