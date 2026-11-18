@@ -33,6 +33,7 @@ local FACES = {
     { name = "A", key = "PAD1", field = "faceBottomButton" },
 }
 local LAYER_BARS = { lb = "friendlyTargetingBar", rb = "hostileTargetingBar" }
+local TRIGGER_BARS = { lt = "leftBar", rt = "rightBar", ltrt = "bottomBar" }
 local CELL_OFFSET = { normal = 0, enemy = 4, lb = 8, rb = 12 }
 local EDIT_MODES = { "normal", "enemy", "lb", "rb" }
 local EDIT_LABELS = { normal = "normal cells", enemy = "enemy cells", lb = "LB cells", rb = "RB cells" }
@@ -58,8 +59,8 @@ local function NativeButton(layer, index)
     if not bars then
         return nil
     end
-    if layer == "top" then
-        local bar = bars.topBar
+    if layer == "top" or TRIGGER_BARS[layer] then
+        local bar = layer == "top" and bars.topBar or bars[TRIGGER_BARS[layer]]
         return bar and bar.Right and bar.Right["ActionButton" .. index], bar
     end
     local bar = bars[LAYER_BARS[layer]]
@@ -231,18 +232,27 @@ local PRECLICK = [[
         local pad = GetGamePadState()
         pad = pad and pad.buttons
         local lb, rb = self:GetAttribute("gb-lbi"), self:GetAttribute("gb-rbi")
+        local lt, rt = self:GetAttribute("gb-lti"), self:GetAttribute("gb-rti")
+        local ltHeld, rtHeld = pad and lt and pad[lt], pad and rt and pad[rt]
         local layer = "top"
-        if pad and lb and pad[lb] then
+        if ltHeld or rtHeld then
+            -- A trigger layer is the game's own bar: left, right or both.
+            layer = (ltHeld and rtHeld) and "ltrt" or (ltHeld and "lt" or "rt")
+            self:SetAttribute("gb-layer", layer)
+            self:SetAttribute("gb-use", nil)
+        elseif pad and lb and pad[lb] then
             layer = "lb"
         elseif pad and rb and pad[rb] then
             layer = "rb"
         end
-        local slot = self:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
-        if slot and not HasAction(slot) then
-            slot = nil
+        if layer == "top" or layer == "lb" or layer == "rb" then
+            local slot = self:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
+            if slot and not HasAction(slot) then
+                slot = nil
+            end
+            self:SetAttribute("gb-layer", layer)
+            self:SetAttribute("gb-use", slot)
         end
-        self:SetAttribute("gb-layer", layer)
-        self:SetAttribute("gb-use", slot)
     end
     local slot = self:GetAttribute("gb-use")
     if slot then
@@ -294,6 +304,9 @@ local function CreateFace(index)
     -- The pressed look on the cell that fired (ours only).
     secure:SetScript("PostClick", function(self, _, down)
         local display = face[self:GetAttribute("gb-layer") or "top"]
+        if not (display and display.holder) then
+            display = nil
+        end
         if down then
             SetDisplayPushed(display, self:GetAttribute("gb-use") ~= nil)
         else
@@ -458,7 +471,9 @@ local function ApplyTopFace()
             end
             secure:SetAttribute("gb-lbi", lbIndex)
             secure:SetAttribute("gb-rbi", rbIndex)
-            for _, layer in ipairs({ "top", "lb", "rb" }) do
+            secure:SetAttribute("gb-lti", PadIndex("PADLTRIGGER"))
+            secure:SetAttribute("gb-rti", PadIndex("PADRTRIGGER"))
+            for _, layer in ipairs({ "top", "lb", "rb", "lt", "rt", "ltrt" }) do
                 local native = NativeButton(layer, index)
                 secure:SetAttribute("gb-native-" .. layer, native and native:GetName() or nil)
             end

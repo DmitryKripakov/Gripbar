@@ -111,6 +111,27 @@ local function GetDiagnosticLines(separator)
         "Storage detail: " .. ns.nativeStorageStatus,
         "Storage scope: actions and reserved slots are per character; crossbar pages: " .. tostring(ns.nativePageStatus),
         "Own X / Y / B / A: " .. (ns.GetTopFaceStatus and ns.GetTopFaceStatus() or "?"),
+        "Own X / Y / B / A cells (normal, enemy, LB, RB per X Y B A): " .. (function()
+            local parts = {}
+            for i, slot in ipairs(ns.topFaceSlots or {}) do
+                local kind, id = GetActionInfo(slot)
+                parts[#parts + 1] = string.format("%d=%s%s", slot, tostring(kind or "-"), id and (":" .. tostring(id)) or "")
+            end
+            return #parts > 0 and table.concat(parts, " ") or "none"
+        end)(),
+        "Storage pool in use: " .. (function()
+            local parts = {}
+            local first = C_GamepadUI and C_GamepadUI.GetFirstGamepadActionStorageSlotIndex and C_GamepadUI.GetFirstGamepadActionStorageSlotIndex()
+            if type(first) == "number" then
+                for slot = first, first + 260 do
+                    if C_ActionBar.HasAction(slot) then
+                        local kind, id = GetActionInfo(slot)
+                        parts[#parts + 1] = string.format("%d=%s:%s", slot, tostring(kind), tostring(id))
+                    end
+                end
+            end
+            return table.concat(parts, " ")
+        end)(),
         "Page binds: " .. (ns.GetPageBindStatus and ns.GetPageBindStatus() or "?"),
         "Native badges: " .. (ns.GetBadgeDiagnostic and ns.GetBadgeDiagnostic() or "?"),
         string.format("Gamepad storage: first=%s%sstance=%s%spet=%s", tostring(firstStorage), separator, tostring(stanceStorage), separator, tostring(petStorage)),

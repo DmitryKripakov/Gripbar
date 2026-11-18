@@ -285,48 +285,60 @@ local function ReserveTopFaceSlots()
         ns.topFaceStatus = "needs native storage"
         return
     end
+    -- Slots the game's crossbar shows on any page, the special (S) page
+    -- included: the game fills that one with consumables by itself.
+    local nativeUsed = GetNativeCrossbarSlots(GetWantedPageCount())
+    -- Slots the game filled by itself (the S page's consumables live outside
+    -- the standard pages' formula): kept off our list once seen.
+    local avoid = type(GripbarCharDB.avoidSlots) == "table" and GripbarCharDB.avoidSlots or {}
+    for slot in pairs(avoid) do
+        nativeUsed[slot] = true
+    end
     local used = {}
     ForEachReservedSlot(function(slot)
         used[slot] = true
     end)
+    -- Each cell keeps its slot while that slot is still ours to use; a cell
+    -- whose slot is not (or that is new) gets a free one.
     local saved = type(GripbarCharDB.topFaceSlots) == "table" and GripbarCharDB.topFaceSlots or {}
-    local kept = {}
-    for _, slot in ipairs(saved) do
-        if type(slot) ~= "number" or used[slot] or not IsValidNativeStorageSlot(slot) or #kept >= TOP_FACE_SLOT_COUNT then
-            -- A broken list starts over.
-            kept = {}
-            break
+    local cells, missing = {}, 0
+    for i = 1, TOP_FACE_SLOT_COUNT do
+        local slot = saved[i]
+        if type(slot) == "number" and not used[slot] and not nativeUsed[slot] and IsValidNativeStorageSlot(slot) then
+            cells[i] = slot
+            used[slot] = true
+        else
+            missing = missing + 1
         end
-        kept[#kept + 1] = slot
-        used[slot] = true
     end
-    if #kept < TOP_FACE_SLOT_COUNT then
+    if missing > 0 then
         local valid = DiscoverNativeStorageSlots()
         if not valid then
             ns.topFaceStatus = "native storage API unavailable"
             return
         end
-        local nativeUsed = GetNativeCrossbarSlots(GetWantedPageCount())
-        local extra = {}
+        local free = {}
         for i = #valid, 1, -1 do
             local slot = valid[i]
             if not used[slot] and not nativeUsed[slot] and not C_ActionBar.HasAction(slot) then
-                table.insert(extra, 1, slot)
-                if #kept + #extra == TOP_FACE_SLOT_COUNT then
+                free[#free + 1] = slot
+                if #free == missing then
                     break
                 end
             end
         end
-        if #kept + #extra ~= TOP_FACE_SLOT_COUNT then
+        if #free ~= missing then
             ns.topFaceStatus = "not enough free native slots"
             return
         end
-        for _, slot in ipairs(extra) do
-            kept[#kept + 1] = slot
+        for i = 1, TOP_FACE_SLOT_COUNT do
+            if not cells[i] then
+                cells[i] = table.remove(free)
+            end
         end
-        GripbarCharDB.topFaceSlots = kept
+        GripbarCharDB.topFaceSlots = cells
     end
-    ns.topFaceSlots = kept
+    ns.topFaceSlots = cells
     ns.topFaceStatus = "ok"
 end
 
