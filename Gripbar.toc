@@ -27,5 +27,6 @@ Diagnostics.lua
 Badges.lua
 PageBinds.lua
 WandShoot.lua
+GameActions.lua
 Settings.lua
 Gripbar.lua

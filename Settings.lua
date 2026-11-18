@@ -212,6 +212,15 @@ local function RegisterSettings()
         end
     )
 
+    AddButton(
+        "Game actions",
+        "Open",
+        function()
+            ns.ToggleGameActions()
+        end,
+        "The top bar's fixed functions (Interact, Inspect, Back, Jump) as macros you can drag onto any slot. On Gripbar slots they show the game's live icon and handle holding (a held jump keeps rising in water). Also: /grip actions."
+    )
+
     AddSection("HUD")
 
     AddSlider("hudScale", "HUD scale", 0.65, 1.50, 0.05,

@@ -247,18 +247,41 @@ local pageTrackingState = "not set up"
 local pageWrapped = {}
 
 local SLOT_PAGE_PRECLICK = [[
-    if not pageReady or self:GetAttribute("type") ~= "action" then
+    -- A paging paddle's slot pages instead (NAV_PRECLICK).
+    if self:GetAttribute("pagedir") or not self:GetAttribute("action-page1") then
         return
     end
-    local id = pageTop:GetID()
-    for p = 1, pageCount do
-        if pageIds[p] == id then
-            local slot = self:GetAttribute("action-page" .. p)
-            if slot then
-                self:SetAttribute("action", slot)
+    local page = self:GetAttribute("gb-page") or 1
+    if pageReady and pageTop then
+        local id = pageTop:GetID()
+        for p = 1, pageCount do
+            if pageIds[p] == id then
+                page = p
+                self:SetAttribute("gb-page", p)
+                break
             end
-            return
         end
+    end
+    -- A game action (Jump, Interact...): the press and the release both
+    -- reach the game's button, so a held jump keeps rising and inspect acts
+    -- on the release, as on the game's own A / Y.
+    local native = self:GetAttribute("gameclick-page" .. page)
+    if native then
+        self:SetAttribute("type", "macro")
+        if down then
+            self:SetAttribute("useOnKeyDown", true)
+            self:SetAttribute("macrotext", "/click " .. native .. " LeftButton true")
+        else
+            self:SetAttribute("useOnKeyDown", false)
+            self:SetAttribute("macrotext", "/click " .. native .. " LeftButton")
+        end
+        return
+    end
+    self:SetAttribute("type", "action")
+    self:SetAttribute("useOnKeyDown", true)
+    local slot = self:GetAttribute("action-page" .. page)
+    if slot then
+        self:SetAttribute("action", slot)
     end
 ]]
 

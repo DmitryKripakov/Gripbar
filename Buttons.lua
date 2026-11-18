@@ -886,10 +886,18 @@ local function UpdateButtonVisual(button)
 
     button.hasAction = hasAction
 
+    -- A game action (Gripbar's Jump / Interact... macros): the game's
+    -- button's live icon instead of the macro's.
+    button.gameAction = hasAction and button.actionSlot and ns.GameActionForSlot
+        and ns.GameActionForSlot(button.actionSlot) or nil
+    button.gameIconKind, button.gameIconValue = nil, nil
     if icon then
         visual.icon:SetTexture(icon)
         visual.icon:Show()
         SetEmptyGlyphShown(button, false)
+        if button.gameAction and ns.ApplyGameActionIcon then
+            ns.ApplyGameActionIcon(button)
+        end
     else
         visual.icon:SetTexture(nil)
         visual.icon:Hide()
@@ -973,7 +981,12 @@ local function ConfigureSecureAction(button)
         button:SetAttribute("type", "action")
         -- one slot per crossbar page; the page pre-click picks one.
         for page = 1, ns.pageCount or 1 do
-            button:SetAttribute("action-page" .. page, GetNativeSlot(button.panelIndex, button.paddleIndex, page))
+            local slot = GetNativeSlot(button.panelIndex, button.paddleIndex, page)
+            button:SetAttribute("action-page" .. page, slot)
+            -- A game action on that page: the page pre-click relays the press
+            -- and the release to the game's button instead.
+            local game = ns.GameActionForSlot and ns.GameActionForSlot(slot)
+            button:SetAttribute("gameclick-page" .. page, game and ns.GameActionNativeName(game) or nil)
         end
         button:SetAttribute("action", button.actionSlot)
     else

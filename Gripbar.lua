@@ -101,6 +101,9 @@ end
 local function StartStatePoller()
     addon:SetScript("OnUpdate", function(_, elapsed)
         UpdateFocusFades()
+        if ns.UpdateGameActionIcons then
+            ns.UpdateGameActionIcons()
+        end
         ns.UpdateNativeFades()
         UpdateActionFlashes(elapsed)
 
@@ -199,6 +202,7 @@ local function PrintHelp()
     Print("/grip diag copy - open the diagnostics as copyable text")
     Print("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars")
     Print("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it")
+    Print("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot")
     Print("/grip wand - toggle: swap melee and wand (X shoots the wand, RB + X swings) on a living enemy")
     Print("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)")
     Print("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)")
@@ -226,6 +230,8 @@ SlashCmdList.GRIPBAR = function(message)
         OpenSettings()
     elseif command == "badge" or command == "badges" then
         ns.HandleBadgeCommand(args)
+    elseif command == "actions" or command == "game" then
+        ns.ToggleGameActions()
     elseif command == "wand" or command == "wandshoot" then
         ns.ToggleWandShoot()
     elseif command == "binds" or command == "bind" or command == "long" then
@@ -526,6 +532,19 @@ addon:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
     if event == "ACTIONBAR_SLOT_CHANGED" then
         local changedSlot = tonumber(arg1) or 0
         if ns.nativeStorageEnabled and changedSlot > 0 then
+            -- One of ours on any page: its secure attributes follow what it
+            -- holds (a game action relays clicks), out of combat.
+            local ours = false
+            if ns.ForEachReservedSlot then
+                ns.ForEachReservedSlot(function(slot)
+                    if slot == changedSlot then
+                        ours = true
+                    end
+                end)
+            end
+            if ours and not InCombatLockdown() then
+                RefreshButtons()
+            end
             ForEachButton(function(button)
                 if button.actionSlot == changedSlot then
                     UpdateButtonVisual(button)
