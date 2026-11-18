@@ -764,10 +764,30 @@ local function BuildCloneReport()
         button:SetAllPoints(native[i])
         button:SetAttribute("type", "action")
         button:SetAttribute("action", slot)
-        -- The game picks the shape and the face glyph by the index on its bar:
-        -- 1-4 the d-pad squares, 5-8 the X / Y / B / A circles.
+        -- As the game's bar sets up its own (GamepadActionBarMixin:
+        -- InitActionButtons and the collapsed style): the index picks the face
+        -- glyph (5-8 = X / Y / B / A), the shape is set after the art.
         TryCall(Add, label, button, "SetButtonIndexOnActionBar", 4 + i)
+        TryCall(Add, label, button, "SetActionBarParent", top)
+        button:SetAttribute("showgrid", 1)
+        if button.HotKey then
+            button.HotKey:Hide()
+        end
+        if button.ButtonIcon then
+            button.ButtonIcon:SetSize(20, 20)
+            button.ButtonIcon:SetShown(native[i].ButtonIcon and native[i].ButtonIcon:IsShown())
+        end
         TryCall(Add, label, button, "UpdateButtonArt")
+        TryCall(Add, label, button, "SetShapeToCircle")
+        if button.CircleShadow then
+            local _, _, _, shadowX = native[i].CircleShadow:GetPoint(1)
+            local distance = math.abs(shadowX or 4)
+            button.CircleShadow:ClearAllPoints()
+            button.CircleShadow:SetPoint("TOPLEFT", -distance, distance)
+            button.CircleShadow:SetPoint("BOTTOMRIGHT", distance, -distance)
+            button.CircleShadow:Show()
+        end
+        TryCall(Add, label, button, native[i].collapsed and "Collapse" or "Expand")
         TryCall(Add, label, button, "UpdateAction", true)
         TryCall(Add, label, button, "Update")
         button:Show()
