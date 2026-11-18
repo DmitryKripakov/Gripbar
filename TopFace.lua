@@ -123,7 +123,7 @@ header:SetAttribute("_onstate-gbface", [[
 ]])
 
 -- A press: with LB / RB held, or on a button that shows nothing of ours,
--- the game's own handler gets the press and the release (a held jump keeps
+-- the game's own button gets the press and the release (a held jump keeps
 -- rising). Else our cell's action, on the press, with the game's pushed look.
 local PRECLICK = [[
     local pad = GetGamePadState()
@@ -332,7 +332,9 @@ local function ApplyTopFace()
         if copy then
             copy:SetAttribute("gb-normal", ns.topFaceSlots and ns.topFaceSlots[index] or nil)
             copy:SetAttribute("gb-enemy", ns.topFaceSlots and ns.topFaceSlots[4 + index] or nil)
-            copy:SetAttribute("gb-native", "InputFunctionBindingButton_" .. face.key)
+            -- The game's own top bar button: a /click on it runs its fixed
+            -- function like the press does (as the GB game action macros do).
+            copy:SetAttribute("gb-native", copy.gbNative:GetName())
             copy:SetAttribute("gb-lb", PadIndex("PADLSHOULDER"))
             copy:SetAttribute("gb-rb", PadIndex("PADRSHOULDER"))
             if on then
