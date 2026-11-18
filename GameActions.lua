@@ -43,6 +43,15 @@ local SHORTCUT_NAMES = {
     ["128-redbutton-exit"] = "Back",
 }
 
+-- A macro's icon must be an icon file, not an atlas: the closest icon for
+-- each shortcut's picture (on Gripbar slots the live atlas is shown instead).
+local SHORTCUT_ICONS = {
+    ["gamepad-radial-icon-bags"] = "INV_Misc_Bag_08",
+    ["gamepad-radial-icon-quests"] = "INV_Misc_Book_08",
+    ["gamepad-radial-icon-viewbuffs"] = "Spell_Holy_WordFortitude",
+    ["gamepad-targeting-last-hostile"] = "Ability_Hunter_SniperShot",
+}
+
 local COMMANDS = {
     { key = "tgtenemy", label = "Target enemy", body = "/targetenemy", icon = "Ability_Hunter_SniperShot",
         tip = "Targets the nearest enemy (next one on repeat)." },
@@ -170,7 +179,7 @@ local function FindShortcuts()
                     local label = SHORTCUT_NAMES[key] or ("Game button " .. (#found + 1))
                     found[#found + 1] = {
                         key = "sc:" .. key, label = label, name = frame:GetName(), atlas = atlas,
-                        icon = "INV_Misc_QuestionMark",
+                        icon = SHORTCUT_ICONS[key] or "INV_Misc_QuestionMark",
                         tip = "A shortcut button of the game's LB / RB bars (" .. atlas .. ").",
                     }
                 end
@@ -219,18 +228,28 @@ local function EnsureMacro(def)
             EditMacro(index, name, nil, body)
         end
     end
+    local icon = IconFileID(def)
     if index and index > 0 then
-        local _, _, current = GetMacroInfo(index)
-        if current ~= body then
-            EditMacro(index, name, nil, body)
+        local _, currentIcon, current = GetMacroInfo(index)
+        -- Body and icon kept up to date (the first build gave the bumper
+        -- shortcuts a question mark).
+        if current ~= body or (currentIcon ~= icon and icon ~= 134400) then
+            EditMacro(index, name, icon, body)
         end
         return index
     end
-    local ok, created = pcall(CreateMacro, name, IconFileID(def), body, false)
+    local ok, created = pcall(CreateMacro, name, icon, body, false)
     if not ok or not created or created == 0 then
         Print("Could not create the macro \"" .. name .. "\": the account's general macros may be full.")
         return nil
     end
+    -- A slot the macro is dropped on reads it fresh (it was only picked up
+    -- after a reload otherwise), Gripbar's slots included.
+    C_Timer.After(0, function()
+        if ns.RefreshButtons and not InCombatLockdown() then
+            ns.RefreshButtons()
+        end
+    end)
     return created
 end
 
@@ -466,6 +485,14 @@ events:SetScript("OnEvent", function()
         local index = GetMacroIndexByName(MacroName(def))
         local old = GetMacroIndexByName(def.old)
         if (index and index > 0) or (old and old > 0) then
+            EnsureMacro(def)
+        end
+    end
+    -- The bumper shortcuts' macros made earlier: their icon and button name.
+    for _, def in ipairs(FindShortcuts()) do
+        Register(def)
+        local index = GetMacroIndexByName(MacroName(def))
+        if index and index > 0 then
             EnsureMacro(def)
         end
     end
