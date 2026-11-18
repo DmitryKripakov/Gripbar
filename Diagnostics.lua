@@ -657,12 +657,10 @@ local function ShowTemplatesReport()
 end
 
 
--- /grip clone: copies of the game's crossbar made from its own templates, next
--- to the top bar for 20 s: four buttons from GamepadActionBarButtonTemplate
--- shaped like the game's face buttons, and a whole bar from
--- GamepadActionBarTemplate. The report compares their art with the game's.
+-- /grip clone: four buttons from the game's own crossbar button template put
+-- over the top bar's X / Y / B / A for 20 s (the game's hidden meanwhile).
+-- The report compares their art with the game's.
 local cloneButtons = {}
-local cloneBar
 
 local function AtlasOf(region)
     if not region then
@@ -742,12 +740,12 @@ local function BuildCloneReport()
     DescribeButton(Add, "game top d-pad 1", top.Left.ActionButton1)
 
     Add("")
-    Add("== Four buttons from GamepadActionBarButtonTemplate (above the top bar) ==")
-    local scale = native[1]:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    Add("== In place: four buttons from GamepadActionBarButtonTemplate over the game's X / Y / B / A ==")
+    Add("(the game's buttons are hidden for 20 s; the copies hold your top d-pad's actions)")
     for i = 1, 4 do
         local button = cloneButtons[i]
         if not button then
-            local ok, made = pcall(CreateFrame, "CheckButton", "GripbarCloneButton" .. i, UIParent,
+            local ok, made = pcall(CreateFrame, "CheckButton", "GripbarCloneButton" .. i, native[i]:GetParent(),
                 "GamepadActionBarButtonTemplate,SecureActionButtonTemplate")
             if not ok then
                 Add("button " .. i .. " not created: " .. tostring(made))
@@ -756,72 +754,33 @@ local function BuildCloneReport()
             button = made
             cloneButtons[i] = button
         end
-        local label = "clone " .. i
+        local label = "copy " .. i
         local slot = top.Left["ActionButton" .. i] and top.Left["ActionButton" .. i].action
+        -- Inside the game's face group: its scale, fade and collapse.
+        button:SetParent(native[i]:GetParent())
+        button:SetFrameStrata(native[i]:GetFrameStrata())
+        button:SetFrameLevel(native[i]:GetFrameLevel() + 5)
+        button:ClearAllPoints()
+        button:SetAllPoints(native[i])
         button:SetAttribute("type", "action")
         button:SetAttribute("action", slot)
-        button:SetSize(native[i]:GetWidth(), native[i]:GetHeight())
-        button:SetScale(scale)
-        button:ClearAllPoints()
-        local x, y = native[i]:GetCenter()
-        local ux, uy = UIParent:GetCenter()
-        -- The game's centre is in its own scale; offsets are in the clone's
-        -- (the same scale), 150 UI pixels higher.
-        button:SetPoint("CENTER", UIParent, "CENTER", x - ux / scale, y - uy / scale + 150 / scale)
-        TryCall(Add, label, button, "SetShapeToCircle")
+        -- The game picks the shape and the face glyph by the index on its bar:
+        -- 1-4 the d-pad squares, 5-8 the X / Y / B / A circles.
+        TryCall(Add, label, button, "SetButtonIndexOnActionBar", 4 + i)
         TryCall(Add, label, button, "UpdateButtonArt")
         TryCall(Add, label, button, "UpdateAction", true)
         TryCall(Add, label, button, "Update")
         button:Show()
         DescribeButton(Add, label .. " (slot " .. tostring(slot) .. ")", button)
-    end
-
-    Add("")
-    Add("== A whole bar from GamepadActionBarTemplate (below the centre) ==")
-    if not cloneBar then
-        local ok, made = pcall(CreateFrame, "Frame", "GripbarCloneBar", UIParent, "GamepadActionBarTemplate")
-        if ok then
-            cloneBar = made
-        else
-            Add("bar not created: " .. tostring(made))
-        end
-    end
-    if cloneBar then
-        cloneBar:ClearAllPoints()
-        cloneBar:SetPoint("CENTER", UIParent, "CENTER", 0, -160)
-        cloneBar:SetScale(top:GetEffectiveScale() / UIParent:GetEffectiveScale())
-        cloneBar:Show()
-        local barKeys = {}
-        for key, value in pairs(cloneBar) do
-            if type(key) == "string" then
-                barKeys[#barKeys + 1] = key .. ":" .. type(value):sub(1, 1)
-            end
-        end
-        table.sort(barKeys)
-        Add(string.format("clone bar: size %.1f x %.1f, shown %s", cloneBar:GetWidth(), cloneBar:GetHeight(), tostring(cloneBar:IsVisible())))
-        Add("  keys: " .. table.concat(barKeys, ", "))
-        local right = cloneBar.Right
-        if right then
-            for i = 1, 4 do
-                local b = right["ActionButton" .. i]
-                if b then
-                    DescribeButton(Add, "clone bar face " .. i, b)
-                end
-            end
-        else
-            local children = { cloneBar:GetChildren() }
-            Add("  no .Right; children: " .. #children)
-        end
+        native[i]:SetAlpha(0)
     end
 
     C_Timer.After(20, function()
-        for _, button in ipairs(cloneButtons) do
+        for i, button in ipairs(cloneButtons) do
             if not InCombatLockdown() then
                 button:Hide()
             end
-        end
-        if cloneBar and not InCombatLockdown() then
-            cloneBar:Hide()
+            native[i]:SetAlpha(1)
         end
     end)
     Add("")
