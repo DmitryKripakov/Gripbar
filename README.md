@@ -24,7 +24,10 @@ Forever's crossbar gives you the d-pad and the face buttons on four layers (no t
 
 - **Swap melee and wand.** With a wand equipped and a living enemy targeted, X shoots the wand and RB + X swings the melee weapon (the game has them the other way round). Looting, NPCs and LT / RT + X stay the game's. Works on every client language.
 - **Page binds.** Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on whichever LT / RT layer is held. Handy with Steam Input long presses on rarely used buttons.
-- **Game actions.** The top bar's fixed functions (Interact, Inspect, Back, Jump) as macros to drag onto any slot (`/grip actions`). On Gripbar slots they show the game's live icon (the smart interact's pickaxe, hand, gear...) and handle holding.
+- **Game actions** (`/grip actions`): drag onto any slot, as "GB ..." macros:
+  - the game's fixed buttons: Interact, Inspect, Back, Jump and the LB / RB bars' shortcut buttons. On Gripbar slots they show the game's live icon (the smart interact's pickaxe, hand, gear...) and handle holding;
+  - targeting and combat: target enemy / friend, last target, last enemy, clear target, assist, follow, start / stop attack, sit, dismount, pet attack / follow;
+  - windows: bags, world map, quest log, character, spellbook, screenshot.
 - **Paging paddles.** A paddle can page the crossbar (previous / next) instead of firing its slots.
 - **Native badge offsets.** Move the crossbar's own LT, RT and LT + RT prompts.
 

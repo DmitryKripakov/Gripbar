@@ -1,59 +1,198 @@
--- Game actions: the four fixed functions of the crossbar's top bar (X
--- interact, Y inspect, B back, A jump) as things the player can drag
--- anywhere.
+-- Game actions: the game's own controller functions and common commands as
+-- things the player can drag onto any action slot.
 --
--- The top bar's A / B / X / Y are ordinary secure buttons of the game: a
--- "/click" on one runs its function, in combat too. Gripbar makes one
--- account-wide macro per function ("Gripbar Jump"...) that clicks the game's
--- button (press, then release), so it works on any action slot of the game or
--- of other addons. On a Gripbar slot it is recognised and does better than a
--- macro: the press and the release reach the game's button separately (so a
--- held jump keeps rising in water and inspect acts on the release), and the
--- slot shows the game's button's live icon (the smart interact's pickaxe,
--- hand, gear...).
+-- Three kinds, all made into account-wide macros named "GB <name>":
+--   * buttons: the crossbar's fixed buttons (the top bar's X interact,
+--     Y inspect, B back, A jump, and the shortcut buttons of the LB / RB bars,
+--     found at run time). They are secure buttons of the game: the macro
+--     clicks them (press, then release). On a Gripbar slot they do better: the
+--     press and the release reach the game's button separately (a held jump
+--     keeps rising in water, inspect acts on the release) and the slot shows
+--     the game button's live icon (the smart interact's pickaxe, hand...).
+--   * commands with a slash command of the game (/targetenemy...).
+--   * windows (bags, map...) opened through their plain toggle functions.
+-- The game's controller-only bindings (the Start radial, the Select cursor,
+-- ping, holding a bumper to target) have no macro form and are left out.
 local _, ns = ...
 
 local Print = ns.Print
 
--- index: the button's place in the top bar's face group (1 X, 2 Y, 3 B, 4 A)
-local ACTIONS = {
-    { key = "interact", label = "Interact", index = 1, macro = "Gripbar Interact", icon = "INV_Misc_Gear_01",
+local PREFIX = "GB "
+
+-- The top bar's face group (index: 1 X, 2 Y, 3 B, 4 A).
+local TOP_BUTTONS = {
+    { key = "interact", label = "Interact", index = 1, icon = "INV_Misc_Gear_01", old = "Gripbar Interact",
         tip = "The game's smart interact (X): loot, talk, gather, attack the soft target." },
-    { key = "inspect", label = "Inspect", index = 2, macro = "Gripbar Inspect", icon = "INV_Misc_Spyglass_02",
+    { key = "inspect", label = "Inspect", index = 2, icon = "INV_Misc_Spyglass_02", old = "Gripbar Inspect",
         tip = "The game's inspect / target button (Y)." },
-    { key = "back", label = "Back", index = 3, macro = "Gripbar Back", icon = "Spell_ChargeNegative",
+    { key = "back", label = "Back", index = 3, icon = "Spell_ChargeNegative", old = "Gripbar Back",
         tip = "The game's back / cancel button (B)." },
-    { key = "jump", label = "Jump", index = 4, macro = "Gripbar Jump", icon = "Ability_Rogue_Sprint",
+    { key = "jump", label = "Jump", index = 4, icon = "Ability_Rogue_Sprint", old = "Gripbar Jump",
         tip = "The game's jump (A). Held on a Gripbar slot it keeps rising in water." },
 }
 
-local byMacro = {}
-for _, def in ipairs(ACTIONS) do
-    byMacro[def.macro] = def
+-- Names for the shortcut buttons found on the bumper bars, by their picture.
+local SHORTCUT_NAMES = {
+    ["gamepad-radial-icon-bags"] = "Bags button",
+    ["gamepad-radial-icon-quests"] = "Quests button",
+    ["gamepad-radial-icon-viewbuffs"] = "Buffs button",
+    ["gamepad-targeting-last-hostile"] = "Last foe",
+    ["gamepad-ability-icon-jump"] = "Jump",
+    ["crosshair_inspect_32"] = "Inspect",
+    ["crosshair_unableinspect_32"] = "Inspect",
+    ["128-redbutton-exit"] = "Back",
+}
+
+local COMMANDS = {
+    { key = "tgtenemy", label = "Target enemy", body = "/targetenemy", icon = "Ability_Hunter_SniperShot",
+        tip = "Targets the nearest enemy (next one on repeat)." },
+    { key = "tgtfriend", label = "Target friend", body = "/targetfriend", icon = "Spell_Holy_HolyBolt",
+        tip = "Targets the nearest friendly player." },
+    { key = "tgtlast", label = "Last target", body = "/targetlasttarget", icon = "INV_Misc_Spyglass_03",
+        tip = "Targets your previous target." },
+    { key = "tgtlastfoe", label = "Last enemy", body = "/targetlastenemy", icon = "Ability_Warrior_Charge",
+        tip = "Targets the last enemy you had targeted." },
+    { key = "clear", label = "Clear target", body = "/cleartarget", icon = "Ability_Stealth",
+        tip = "Clears your target." },
+    { key = "assist", label = "Assist", body = "/assist", icon = "Ability_Warrior_BattleShout",
+        tip = "Targets your target's target." },
+    { key = "follow", label = "Follow", body = "/follow", icon = "Ability_Tracking",
+        tip = "Follows your target." },
+    { key = "attack", label = "Start attack", body = "/startattack", icon = "INV_Sword_04",
+        tip = "Starts the melee auto attack on your target." },
+    { key = "stopattack", label = "Stop attack", body = "/stopattack", icon = "INV_Shield_04",
+        tip = "Stops the auto attack." },
+    { key = "sit", label = "Sit / stand", body = "/sit", icon = "Spell_Nature_Sleep",
+        tip = "Sits down (stands up from any move)." },
+    { key = "dismount", label = "Dismount", body = "/dismount", icon = "Ability_Mount_RidingHorse",
+        tip = "Gets off your mount." },
+    { key = "petattack", label = "Pet attack", body = "/petattack", icon = "Ability_GhoulFrenzy",
+        tip = "Sends your pet at your target." },
+    { key = "petfollow", label = "Pet follow", body = "/petfollow", icon = "Ability_Hunter_BeastCall",
+        tip = "Calls your pet back to you." },
+}
+
+local WINDOWS = {
+    { key = "bags", label = "Bags", body = "/run ToggleAllBags()", icon = "INV_Misc_Bag_08",
+        tip = "Opens or closes all bags." },
+    { key = "map", label = "World map", body = "/run ToggleWorldMap()", icon = "INV_Misc_Map02",
+        tip = "Opens or closes the world map." },
+    { key = "quests", label = "Quest log", body = "/run ToggleQuestLog()", icon = "INV_Misc_Book_08",
+        tip = "Opens or closes the quest log." },
+    { key = "character", label = "Character", body = "/run ToggleCharacter(\"PaperDollFrame\")", icon = "INV_Chest_Cloth_17",
+        tip = "Opens or closes the character window." },
+    { key = "spellbook", label = "Spellbook", body = "/run ToggleSpellBook(BOOKTYPE_SPELL or \"spell\")", icon = "INV_Misc_Book_09",
+        tip = "Opens or closes the spellbook." },
+    { key = "screenshot", label = "Screenshot", body = "/screenshot", icon = "INV_Misc_Spyglass_02",
+        tip = "Takes a screenshot." },
+}
+
+local function MacroName(def)
+    return (PREFIX .. def.label):sub(1, 16)
+end
+
+---------------------------------------------------------------------------
+-- The game's buttons
+---------------------------------------------------------------------------
+local function PageUnit()
+    local main = _G.GamepadMainActionBarFrame
+    return main and main.PageUnit
 end
 
 local function TopFace()
-    local main = _G.GamepadMainActionBarFrame
-    local bars = main and main.PageUnit and main.PageUnit.actionBars
+    local unit = PageUnit()
+    local bars = unit and unit.actionBars
     local bar = bars and bars.topBar
     return bar and bar.Right
 end
 
--- The game's button of an action, or nil while the crossbar is not up.
-local function NativeButton(def)
-    local face = TopFace()
-    return face and face["ActionButton" .. def.index] or nil
+local function IconRegionOf(button)
+    for _, key in ipairs({ "SpecialActionIcon", "icon" }) do
+        local region = button[key]
+        if region and region.IsShown and region:IsShown() then
+            return region
+        end
+    end
+    return nil
 end
 
--- Its global name (a /click needs one). The crossbar's names are stable;
--- the fallback keeps the macros right while the gamepad UI is off.
+-- The game's button of a "button" action, or nil while the crossbar is not up.
+local function NativeButton(def)
+    if def.index then
+        local face = TopFace()
+        return face and face["ActionButton" .. def.index] or nil
+    end
+    return def.name and _G[def.name] or nil
+end
+
+-- Its global name (a /click needs one); the top bar's names are stable.
 local function NativeName(def)
     local button = NativeButton(def)
     local name = button and button.GetName and button:GetName()
-    return name or ("GamepadMainActionBarFramePageUnitTopCenteredAnchorTopBarActionButton" .. (4 + def.index))
+    if name then
+        return name
+    end
+    if def.index then
+        return "GamepadMainActionBarFramePageUnitTopCenteredAnchorTopBarActionButton" .. (4 + def.index)
+    end
+    return def.name
 end
 
-local function MacroBody(def)
+-- The shortcut buttons of the bumper bars: every protected, named button of
+-- the crossbar that shows a fixed function's picture (an atlas on its
+-- SpecialActionIcon) and is not one of the top bar's four.
+local function FindShortcuts()
+    local found, seen = {}, {}
+    local unit = PageUnit()
+    if not unit then
+        return found
+    end
+    local top = {}
+    for _, def in ipairs(TOP_BUTTONS) do
+        local b = NativeButton(def)
+        if b then
+            top[b] = true
+        end
+    end
+    local function Scan(frame, depth)
+        if depth > 8 then
+            return
+        end
+        if frame:IsObjectType("Button") and not top[frame] and frame.GetName and frame:GetName() then
+            local region = frame.SpecialActionIcon
+            local atlas = region and region.GetAtlas and region:GetAtlas()
+            local key = atlas and atlas:lower()
+            -- The top bar's own functions (jump, inspect, back) are there already.
+            local duplicate = key and (key:find("jump", 1, true) or key:find("inspect", 1, true) or key:find("redbutton%-exit"))
+            if atlas and not duplicate and frame.IsProtected and frame:IsProtected() then
+                if not seen[key] then
+                    seen[key] = true
+                    local label = SHORTCUT_NAMES[key] or ("Game button " .. (#found + 1))
+                    found[#found + 1] = {
+                        key = "sc:" .. key, label = label, name = frame:GetName(), atlas = atlas,
+                        icon = "INV_Misc_QuestionMark",
+                        tip = "A shortcut button of the game's LB / RB bars (" .. atlas .. ").",
+                    }
+                end
+            end
+        end
+        for _, child in ipairs({ frame:GetChildren() }) do
+            Scan(child, depth + 1)
+        end
+    end
+    Scan(unit, 0)
+    return found
+end
+
+---------------------------------------------------------------------------
+-- Macros
+---------------------------------------------------------------------------
+local byMacro = {}         -- macro name -> button def (only the clicked kind)
+
+local function Body(def)
+    if def.body then
+        return def.body
+    end
     local name = NativeName(def)
     return "/click " .. name .. " LeftButton true\n/click " .. name .. " LeftButton"
 end
@@ -64,24 +203,32 @@ local function IconFileID(def)
     return id or 134400
 end
 
--- Creates (or refreshes) the action's macro. Out of combat. Returns its index.
+-- Creates (or refreshes) a def's macro, out of combat. Returns its index.
 local function EnsureMacro(def)
     if InCombatLockdown() then
         Print("Game actions cannot be created during combat.")
         return nil
     end
-    local index = GetMacroIndexByName(def.macro)
-    local body = MacroBody(def)
+    local name = MacroName(def)
+    local body = Body(def)
+    local index = GetMacroIndexByName(name)
+    -- The first build named the top four "Gripbar Jump"...: take those over.
+    if (not index or index == 0) and def.old then
+        index = GetMacroIndexByName(def.old)
+        if index and index > 0 then
+            EditMacro(index, name, nil, body)
+        end
+    end
     if index and index > 0 then
         local _, _, current = GetMacroInfo(index)
         if current ~= body then
-            EditMacro(index, def.macro, nil, body)
+            EditMacro(index, name, nil, body)
         end
         return index
     end
-    local ok, created = pcall(CreateMacro, def.macro, IconFileID(def), body, false)
+    local ok, created = pcall(CreateMacro, name, IconFileID(def), body, false)
     if not ok or not created or created == 0 then
-        Print("Could not create the macro \"" .. def.macro .. "\": the account's general macros may be full.")
+        Print("Could not create the macro \"" .. name .. "\": the account's general macros may be full.")
         return nil
     end
     return created
@@ -94,7 +241,20 @@ local function Pickup(def)
     end
 end
 
--- The game action a native action slot holds (one of our macros), or nil.
+local function Register(def)
+    if not def.body then
+        byMacro[MacroName(def)] = def
+        if def.old then
+            byMacro[def.old] = def
+        end
+    end
+end
+
+for _, def in ipairs(TOP_BUTTONS) do
+    Register(def)
+end
+
+-- The clicked game button a native action slot holds (one of our macros), or nil.
 local function ForSlot(slot)
     if not slot or not C_ActionBar.HasAction(slot) then
         return nil
@@ -103,27 +263,44 @@ local function ForSlot(slot)
     if kind ~= "macro" or not id then
         return nil
     end
-    local name = GetMacroInfo(id)
-    return name and byMacro[name] or nil
+    local name, _, body = GetMacroInfo(id)
+    if not name then
+        return nil
+    end
+    local def = byMacro[name]
+    if def then
+        return def
+    end
+    -- Any GB macro clicking a game button (a bumper bar's shortcut put on a
+    -- slot before the picker was opened this session).
+    local native = name:sub(1, #PREFIX) == PREFIX and body and body:match("^/click (%S+) LeftButton true")
+    if native then
+        def = { key = "click:" .. native, label = name:sub(#PREFIX + 1), name = native, icon = "INV_Misc_QuestionMark" }
+        byMacro[name] = def
+        return def
+    end
+    return nil
 end
 
--- The game's button's current picture: ("atlas", name) or ("texture", file),
--- else the macro's own icon.
+---------------------------------------------------------------------------
+-- Live icons
+---------------------------------------------------------------------------
 local function LiveIcon(def)
-    local button = NativeButton(def)
-    if button then
-        for _, key in ipairs({ "SpecialActionIcon", "icon" }) do
-            local region = button[key]
-            if region and region.IsShown and region:IsShown() then
-                local atlas = region.GetAtlas and region:GetAtlas()
-                if atlas then
-                    return "atlas", atlas
-                end
-                local texture = region.GetTexture and region:GetTexture()
-                if texture then
-                    return "texture", texture
-                end
+    if not def.body then
+        local button = NativeButton(def)
+        local region = button and IconRegionOf(button)
+        if region then
+            local atlas = region.GetAtlas and region:GetAtlas()
+            if atlas then
+                return "atlas", atlas
             end
+            local texture = region.GetTexture and region:GetTexture()
+            if texture then
+                return "texture", texture
+            end
+        end
+        if def.atlas then
+            return "atlas", def.atlas
         end
     end
     return "texture", "Interface\\Icons\\" .. def.icon
@@ -137,7 +314,7 @@ local function SetIcon(texture, kind, value)
     end
 end
 
--- A Gripbar slot holding a game action: the live icon on it.
+-- A Gripbar slot holding a clicked game button: the live icon on it.
 local function ApplySlotIcon(button)
     local def = button.gameAction
     if not def or not button.visual then
@@ -151,7 +328,6 @@ local function ApplySlotIcon(button)
     end
 end
 
--- From the state poller: the interact icon follows the soft target.
 local function UpdateSlotIcons()
     if not ns.ForEachButton then
         return
@@ -163,12 +339,61 @@ local function UpdateSlotIcons()
     end)
 end
 
--- The picker: four icons to drag (or click) onto any slot.
+---------------------------------------------------------------------------
+-- The picker: every action as an icon to drag (or click) onto a slot
+---------------------------------------------------------------------------
+local COLUMNS, CELL = 8, 46
 local picker
+
+local function Section(frame, title, defs, y)
+    local header = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    header:SetPoint("TOPLEFT", 20, y)
+    header:SetText(title)
+    y = y - 20
+    for i, def in ipairs(defs) do
+        Register(def)
+        local col, row = (i - 1) % COLUMNS, math.floor((i - 1) / COLUMNS)
+        local b = CreateFrame("Button", nil, frame)
+        b:SetSize(36, 36)
+        b:SetPoint("TOPLEFT", 20 + col * CELL, y - row * (CELL + 12))
+        b.icon = b:CreateTexture(nil, "ARTWORK")
+        b.icon:SetAllPoints()
+        b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+        b.label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        b.label:SetPoint("TOP", b, "BOTTOM", 0, -2)
+        b.label:SetWidth(CELL + 4)
+        b.label:SetMaxLines(1)
+        b.label:SetText(def.label)
+        b:RegisterForDrag("LeftButton")
+        b:RegisterForClicks("LeftButtonUp")
+        b:SetScript("OnDragStart", function()
+            Pickup(def)
+        end)
+        b:SetScript("OnClick", function()
+            Pickup(def)
+        end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:AddLine(def.label)
+            GameTooltip:AddLine(def.tip, 1, 1, 1, true)
+            GameTooltip:AddLine("Macro: " .. MacroName(def), 0.7, 0.7, 0.7)
+            if not def.body then
+                GameTooltip:AddLine("On Gripbar slots: the game's live icon, and holding works.", 0.7, 0.7, 0.7, true)
+            end
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", function()
+            GameTooltip:Hide()
+        end)
+        b.def = def
+        frame.buttons[#frame.buttons + 1] = b
+    end
+    local rows = math.max(1, math.ceil(#defs / COLUMNS))
+    return y - rows * (CELL + 12) - 6
+end
+
 local function CreatePicker()
     local frame = CreateFrame("Frame", "GripbarGameActions", UIParent, "BackdropTemplate")
-    frame:SetSize(4 * 52 + 36, 112)
-    frame:SetPoint("CENTER", 0, 120)
     frame:SetFrameStrata("DIALOG")
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
@@ -184,42 +409,26 @@ local function CreatePicker()
             insets = { left = 11, right = 12, top = 12, bottom = 11 },
         })
     end
-    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.title:SetPoint("TOP", 0, -16)
-    frame.title:SetText("Gripbar game actions: drag onto a slot")
+    frame.title:SetText("Gripbar game actions")
+    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetPoint("TOP", 0, -36)
+    hint:SetText("Drag onto any action slot (or click, then click the slot).")
 
     frame.buttons = {}
-    for i, def in ipairs(ACTIONS) do
-        local b = CreateFrame("Button", nil, frame)
-        b:SetSize(40, 40)
-        b:SetPoint("TOPLEFT", 18 + (i - 1) * 52, -38)
-        b.icon = b:CreateTexture(nil, "ARTWORK")
-        b.icon:SetAllPoints()
-        b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
-        b.label = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        b.label:SetPoint("TOP", b, "BOTTOM", 0, -3)
-        b.label:SetText(def.label)
-        b:RegisterForDrag("LeftButton")
-        b:RegisterForClicks("LeftButtonUp")
-        b:SetScript("OnDragStart", function()
-            Pickup(def)
-        end)
-        b:SetScript("OnClick", function()
-            Pickup(def)
-        end)
-        b:SetScript("OnEnter", function(self)
-            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine(def.label)
-            GameTooltip:AddLine(def.tip, 1, 1, 1, true)
-            GameTooltip:AddLine("Drag it onto any action slot. On Gripbar slots it shows the game's live icon and handles holding.", 0.7, 0.7, 0.7, true)
-            GameTooltip:Show()
-        end)
-        b:SetScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-        b.def = def
-        frame.buttons[i] = b
+    local buttons = {}
+    for _, def in ipairs(TOP_BUTTONS) do
+        buttons[#buttons + 1] = def
     end
+    for _, def in ipairs(FindShortcuts()) do
+        buttons[#buttons + 1] = def
+    end
+    local y = Section(frame, "The game's buttons", buttons, -58)
+    y = Section(frame, "Targeting and combat", COMMANDS, y)
+    y = Section(frame, "Windows", WINDOWS, y)
+    frame:SetSize(COLUMNS * CELL + 32, -y + 16)
+    frame:SetPoint("CENTER", 0, 60)
 
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -4, -4)
@@ -238,26 +447,31 @@ local function CreatePicker()
 end
 
 local function TogglePicker()
+    if not picker and InCombatLockdown() then
+        Print("The game actions window opens after combat.")
+        return
+    end
     picker = picker or CreatePicker()
     picker:SetShown(not picker:IsShown())
 end
 
--- Macros made earlier follow the crossbar's button names.
+-- Macros made earlier follow the game's button names (and the new names).
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:SetScript("OnEvent", function()
     if InCombatLockdown() then
         return
     end
-    for _, def in ipairs(ACTIONS) do
-        local index = GetMacroIndexByName(def.macro)
-        if index and index > 0 then
+    for _, def in ipairs(TOP_BUTTONS) do
+        local index = GetMacroIndexByName(MacroName(def))
+        local old = GetMacroIndexByName(def.old)
+        if (index and index > 0) or (old and old > 0) then
             EnsureMacro(def)
         end
     end
 end)
 
-ns.GAME_ACTIONS = ACTIONS
+ns.GAME_ACTIONS = TOP_BUTTONS
 ns.GameActionForSlot = ForSlot
 ns.GameActionNativeName = NativeName
 ns.ApplyGameActionIcon = ApplySlotIcon
