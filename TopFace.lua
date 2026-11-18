@@ -228,6 +228,11 @@ header:SetAttribute("_onstate-gbface", [[
 -- bar. Its cell's action when it holds one, on the press; else the game's
 -- own button of that layer gets the press and the release.
 local PRECLICK = [[
+    -- A click that put the cursor's action into a cell does nothing else.
+    if self:GetAttribute("gb-drop") then
+        self:SetAttribute("gb-drop", nil)
+        return false
+    end
     if down then
         local pad = GetGamePadState()
         pad = pad and pad.buttons
@@ -345,12 +350,34 @@ local function CreateFace(index)
     end)
 
     -- Mouse: the top cell shown takes drops, gives up its action, has a tooltip.
-    secure:SetScript("OnReceiveDrag", function()
+    -- Dropping an action (drag released, or a click with it on the cursor)
+    -- puts it into the cell the mouse works on.
+    local function Drop(how)
+        local cursor = GetCursorInfo()
         local slot = MouseSlot(face, index)
-        if InCombatLockdown() or not slot or not GetCursorInfo() then
+        if ns.Log then
+            ns.Log("topface", string.format("%s on %s: cursor %s, cell %s, combat %s", how, FACES[index].name,
+                tostring(cursor), tostring(slot), tostring(InCombatLockdown())))
+        end
+        if InCombatLockdown() or not slot or not cursor then
+            return false
+        end
+        local ok, err = pcall(C_ActionBar.PutActionInSlot, slot)
+        if not ok and ns.Log then
+            ns.Log("topface", "drop failed: " .. tostring(err))
+        end
+        return true
+    end
+    secure:SetScript("OnReceiveDrag", function()
+        Drop("drag")
+    end)
+    secure:SetScript("PreClick", function(self, mouseButton, down)
+        if InCombatLockdown() or not GetCursorInfo() or not mouseButton:find("Button") then
             return
         end
-        pcall(C_ActionBar.PutActionInSlot, slot)
+        if Drop("click") then
+            self:SetAttribute("gb-drop", true)
+        end
     end)
     secure:SetScript("OnDragStart", function()
         local slot = MouseSlot(face, index)
