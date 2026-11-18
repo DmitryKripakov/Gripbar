@@ -37,13 +37,15 @@ local PRESSED_INSET = 2 -- the game's pushed style: 4 smaller, 2 lower
 local PRESSED_ATLAS = "gamepad-actionbar-circleslot-border-pressed"
 local NORMAL_ATLAS = "gamepad-actionbar-circleslot-border-normal"
 -- The game's art under ours; its shadows stay (they follow its own states).
-local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "Border", "SlotBackground", "ButtonIcon",
+local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "Border", "SlotBackground",
     "HighlightTexture", "CheckedTexture", "Flash", "NewActionTexture", "SpellHighlightTexture" }
 
 local copies = {}
 local status = "off"
 local pending = false
 local lastError
+local errorShown = false
+local loggedStatus
 
 local function TopBar()
     local main = _G.GamepadMainActionBarFrame
@@ -159,12 +161,20 @@ local function CreateCopy(index)
     if not native then
         return nil
     end
-    local copy = CreateFrame("CheckButton", "GripbarTopFace" .. FACES[index].name, native,
+    -- Made once per session: a frame by this name is ours already.
+    local name = "GripbarTopFace" .. FACES[index].name
+    local copy = _G[name] or CreateFrame("CheckButton", name, native,
         "GamepadActionBarButtonTemplate,SecureActionButtonTemplate")
     copy.gbIndex = index
     copy.gbNative = native
     copy:SetAllPoints(native)
-    copy:SetFrameLevel(native:GetFrameLevel() + 3)
+    copy:SetFrameLevel(native:GetFrameLevel() + 2)
+    -- The face glyph beside the button (X / Y / B / A, shown while the bar
+    -- has focus) is the game's own: a frame its bar template gives each of
+    -- its buttons. It stays the game's, drawn above ours.
+    if native.ButtonIcon then
+        native.ButtonIcon:SetFrameLevel(native:GetFrameLevel() + 6)
+    end
     copy:RegisterForClicks("AnyDown", "AnyUp")
     copy:SetAttribute("type", "action")
     copy:SetAttribute("useOnKeyDown", true)
@@ -174,9 +184,10 @@ local function CreateCopy(index)
     copy:SetButtonIndexOnActionBar(4 + index)
     copy:SetActionBarParent(TopBar())
     copy:SetAttribute("showgrid", 1)
-    copy.HotKey:Hide()
-    copy.HotKey.Show = function() end
-    copy.ButtonIcon:SetSize(20, 20)
+    if copy.HotKey then
+        copy.HotKey:Hide()
+        copy.HotKey.Show = function() end
+    end
     copy:UpdateButtonArt()
     copy:SetShapeToCircle()
     -- Whatever redraws it square (the base art update does), it stays round.
@@ -194,18 +205,9 @@ local function CreateCopy(index)
         copy:Expand()
     end
 
-    -- The face glyph shows when the game shows its own (the bar in focus).
-    local function SyncGlyph()
-        copy.ButtonIcon:SetShown(native.ButtonIcon:IsShown())
-    end
-    hooksecurefunc(native.ButtonIcon, "Show", SyncGlyph)
-    hooksecurefunc(native.ButtonIcon, "Hide", SyncGlyph)
-    SyncGlyph()
-
     function copy:GBRouteChanged()
         local ours = self:GetAttribute("gb-route") == "action"
         SetNativeArtAlpha(native, ours and 0 or 1)
-        SyncGlyph()
     end
 
     function copy:GBPressed(down)
@@ -310,7 +312,7 @@ local function ApplyTopFace()
     if on then
         HookStyle()
         for index in ipairs(FACES) do
-            if not copies[index] then
+            if not copies[index] and not lastError then
                 local ok, result = pcall(CreateCopy, index)
                 if ok then
                     copies[index] = result
@@ -367,8 +369,16 @@ local function ApplyTopFace()
         status = string.format("on: %d of 4 buttons with actions%s", taken,
             CoreBindingsOnly() and "" or " (a menu holds the face buttons)")
     end
+    if status ~= loggedStatus and ns.Log then
+        loggedStatus = status
+        ns.Log("topface", status)
+    end
     if lastError then
         status = status .. "; error " .. lastError
+        if not errorShown then
+            errorShown = true
+            Print("Own X / Y / B / A: " .. status)
+        end
     end
 end
 
@@ -392,9 +402,14 @@ local function HookBindingStack()
     if not manager then
         return
     end
+    local queued = false
     local function Later()
-        if Enabled() then
-            C_Timer.After(0, ApplyTopFace)
+        if Enabled() and not queued then
+            queued = true
+            C_Timer.After(0, function()
+                queued = false
+                ApplyTopFace()
+            end)
         end
     end
     for _, method in ipairs({ "AddBindingSet", "RemoveSet", "ClearBindings", "SetCoreBindingSet" }) do

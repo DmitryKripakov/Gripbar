@@ -527,5 +527,6 @@ end
 
 
 ns.PrintDiagnostics = PrintDiagnostics
+ns.BuildDiagnosticLines = BuildDiagnosticLines
 ns.ShowDiagnosticsFrame = ShowDiagnosticsFrame
 ns.ShowAtlasReport = ShowAtlasReport

@@ -199,6 +199,7 @@ local function PrintHelp()
     Print("/grip clear <base|lt|rt|both> <1-4> - clear one paddle action")
     Print("/grip or /grip options - open native settings")
     Print("/grip diag - show native gamepad integration diagnostics")
+    Print("/grip debug [clear] - toggle the debug log (errors, blocked actions, Gripbar messages, diagnostics) kept in SavedVariables/Gripbar.lua")
     Print("/grip diag copy - open the diagnostics as copyable text")
     Print("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars")
     Print("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it")
@@ -282,6 +283,8 @@ SlashCmdList.GRIPBAR = function(message)
             GripbarDB.spreadTopX, GripbarDB.spreadTopY, GripbarDB.spreadBottomX, GripbarDB.spreadBottomY))
     elseif command == "clear" then
         ClearSlot(args[2], args[3])
+    elseif command == "debug" then
+        ns.ToggleDebug(args)
     elseif command == "diag" or command == "diagnostics" then
         local option = (args[2] or ""):lower()
         if option == "copy" or option == "window" then

@@ -9,10 +9,11 @@
 ## X-Website: https://github.com/DmitryKripakov/Gripbar
 ## X-Credits: Fork of SNRN Backhand 0.9.1 by SillyNameRandomNumber (MIT)
 ## Category: Action Bars
-## SavedVariables: GripbarDB
+## SavedVariables: GripbarDB, GripbarDebugLog
 ## SavedVariablesPerCharacter: GripbarCharDB
 
 Core.lua
+Debug.lua
 Database.lua
 ActionStorage.lua
 PageNavigation.lua

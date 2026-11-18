@@ -448,6 +448,15 @@ local function RegisterSettings()
         "Shows native storage, LT/RT detection, and native art status as plain text you can select and copy (Ctrl+C) into a bug report. Same as /grip diag copy; /grip diag prints it to chat."
     )
 
+    AddButton(
+        "Debug log",
+        "On / Off",
+        function()
+            ns.ToggleDebug()
+        end,
+        "Keeps Lua errors (of every addon), blocked protected actions, Gripbar's messages and a diagnostics snapshot in SavedVariables/Gripbar.lua, which the game writes on /reload and on logout. Also: /grip debug, /grip debug clear."
+    )
+
     content:SetHeight(-y + 10)
 
     local function RefreshControls()

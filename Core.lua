@@ -166,6 +166,9 @@ ns.inputWatcher = nil
 
 local function Print(message)
     DEFAULT_CHAT_FRAME:AddMessage("|cff7fd8ffGripbar|r: " .. tostring(message))
+    if ns.Log then
+        ns.Log("chat", message)
+    end
 end
 
 local function GetMedia(name)
