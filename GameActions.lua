@@ -359,6 +359,88 @@ local function UpdateSlotIcons()
 end
 
 ---------------------------------------------------------------------------
+-- The game's own crossbar slots holding a GB button macro: only the picture
+-- inside the game's button is swapped for the live one. Everything else (the
+-- range dot, cooldowns, the pressed look, the ring) stays the game's own.
+-- When the game redraws the button it gets the live picture again; when the
+-- slot holds something else the game draws its own as usual.
+---------------------------------------------------------------------------
+local nativeButtons, lastScan = nil, -10
+local swapped = {}          -- game button -> the picture we put in
+
+local function NativeActionButtons()
+    local now = GetTime()
+    if nativeButtons and now - lastScan < 5 then
+        return nativeButtons
+    end
+    lastScan = now
+    nativeButtons = {}
+    local unit = PageUnit()
+    if not unit then
+        return nativeButtons
+    end
+    local function Scan(frame, depth)
+        if depth > 8 then
+            return
+        end
+        if frame:IsObjectType("Button") and frame.icon and frame.icon.SetTexture then
+            nativeButtons[#nativeButtons + 1] = frame
+        end
+        for _, child in ipairs({ frame:GetChildren() }) do
+            Scan(child, depth + 1)
+        end
+    end
+    Scan(unit, 0)
+    return nativeButtons
+end
+
+local function CurrentPicture(region, kind)
+    if kind == "atlas" then
+        return region.GetAtlas and region:GetAtlas()
+    end
+    return region:GetTexture()
+end
+
+local nativeElapsed = 0
+local function UpdateNativeIcons(elapsed)
+    nativeElapsed = nativeElapsed + (elapsed or 0)
+    if nativeElapsed < 0.1 then
+        return
+    end
+    nativeElapsed = 0
+    for _, button in ipairs(NativeActionButtons()) do
+        local slot = button.action
+        local def = type(slot) == "number" and slot > 0 and ForSlot(slot) or nil
+        local region = button.icon
+        if def and def.body == nil then
+            local kind, value = LiveIcon(def)
+            local mark = swapped[button]
+            local current = CurrentPicture(region, kind)
+            if not mark or mark.value ~= value or mark.applied ~= current then
+                -- The game's own crop of the icon, put back when we let go.
+                local coords = mark and mark.coords or { region:GetTexCoord() }
+                SetIcon(region, kind, value)
+                region:SetTexCoord(0, 1, 0, 1)
+                swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = coords }
+            end
+        elseif swapped[button] then
+            -- Not ours any more: the game's own picture comes back with its
+            -- next redraw, with its own crop.
+            local coords = swapped[button].coords
+            swapped[button] = nil
+            if coords and #coords >= 4 then
+                region:SetTexCoord(unpack(coords))
+            end
+        end
+    end
+end
+
+local nativeFrame = CreateFrame("Frame")
+nativeFrame:SetScript("OnUpdate", function(_, elapsed)
+    UpdateNativeIcons(elapsed)
+end)
+
+---------------------------------------------------------------------------
 -- The picker: every action as an icon to drag (or click) onto a slot
 ---------------------------------------------------------------------------
 local COLUMNS, CELL = 8, 46
