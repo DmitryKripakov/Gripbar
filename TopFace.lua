@@ -43,6 +43,7 @@ local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "Border", "SlotBack
 local copies = {}
 local status = "off"
 local pending = false
+local lastError
 
 local function TopBar()
     local main = _G.GamepadMainActionBarFrame
@@ -178,6 +179,12 @@ local function CreateCopy(index)
     copy.ButtonIcon:SetSize(20, 20)
     copy:UpdateButtonArt()
     copy:SetShapeToCircle()
+    -- Whatever redraws it square (the base art update does), it stays round.
+    hooksecurefunc(copy, "SetShapeToSquare", function(self)
+        self:SetShapeToCircle()
+        self.CircleShadow:SetAlpha(0)
+        self.SquareShadow:SetAlpha(0)
+    end)
     -- The game's shadow under ours is drawn by its button, in every state.
     copy.CircleShadow:SetAlpha(0)
     copy.SquareShadow:SetAlpha(0)
@@ -303,7 +310,14 @@ local function ApplyTopFace()
     if on then
         HookStyle()
         for index in ipairs(FACES) do
-            copies[index] = copies[index] or CreateCopy(index)
+            if not copies[index] then
+                local ok, result = pcall(CreateCopy, index)
+                if ok then
+                    copies[index] = result
+                else
+                    lastError = FACES[index].name .. ": " .. tostring(result)
+                end
+            end
         end
     end
     header:SetAttribute("gb-on", on or nil)
@@ -312,6 +326,7 @@ local function ApplyTopFace()
     local taken = 0
     for index, face in ipairs(FACES) do
         local copy = copies[index]
+        local ok, err = pcall(function()
         if copy then
             copy:SetAttribute("gb-normal", ns.topFaceSlots and ns.topFaceSlots[index] or nil)
             copy:SetAttribute("gb-enemy", ns.topFaceSlots and ns.topFaceSlots[4 + index] or nil)
@@ -335,6 +350,10 @@ local function ApplyTopFace()
                 taken = taken + 1
             end
         end
+        end)
+        if not ok then
+            lastError = face.name .. ": " .. tostring(err)
+        end
     end
     SecureHandlerExecute(header, [[ self:RunAttribute("gb-eval") ]])
 
@@ -347,6 +366,9 @@ local function ApplyTopFace()
     else
         status = string.format("on: %d of 4 buttons with actions%s", taken,
             CoreBindingsOnly() and "" or " (a menu holds the face buttons)")
+    end
+    if lastError then
+        status = status .. "; error " .. lastError
     end
 end
 
