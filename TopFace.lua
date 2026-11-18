@@ -274,6 +274,33 @@ local function TopSlot(face)
     return face.secure:GetAttribute("gb-top")
 end
 
+-- The bumper held right now (insecure code has no GetGamePadState): "lb",
+-- "rb" or nil.
+local function HeldBumper()
+    for layer, key in pairs({ lb = "PADLSHOULDER", rb = "PADRSHOULDER" }) do
+        local ok, down = pcall(IsKeyDown, key)
+        if ok and down then
+            return layer
+        end
+        local state = ns.GetMappedState and ns.GetMappedState()
+        local raw = C_GamePad and C_GamePad.ButtonBindingToIndex and C_GamePad.ButtonBindingToIndex(key)
+        local index = state and raw and ns.GetMappedButtonArrayIndex and ns.GetMappedButtonArrayIndex(state, raw)
+        if index and state.buttons[index] == true then
+            return layer
+        end
+    end
+    return nil
+end
+
+-- The cell the mouse works on: the held bumper's, else the top cell shown.
+local function MouseSlot(face, index)
+    local bumper = HeldBumper()
+    if bumper then
+        return Cell(index, bumper)
+    end
+    return TopSlot(face)
+end
+
 local function CreateFace(index)
     local topNative, topBar = NativeButton("top", index)
     if not topNative then
@@ -291,8 +318,9 @@ local function CreateFace(index)
     local secure = CreateFrame("Button", "GripbarFace" .. FACES[index].name, UIParent, "SecureActionButtonTemplate")
     face.secure = secure
     secure:SetAllPoints(topNative)
-    secure:SetFrameStrata(topNative:GetFrameStrata())
-    secure:SetFrameLevel(topNative:GetFrameLevel() + 10)
+    -- Above the targeting bars too (they cover the top bar while a bumper is
+    -- held), so the mouse reaches the held bumper's cell.
+    secure:SetFrameStrata("HIGH")
     secure:RegisterForClicks("AnyDown", "AnyUp")
     secure:RegisterForDrag("LeftButton")
     secure:SetAttribute("useOnKeyDown", true)
@@ -318,14 +346,14 @@ local function CreateFace(index)
 
     -- Mouse: the top cell shown takes drops, gives up its action, has a tooltip.
     secure:SetScript("OnReceiveDrag", function()
-        local slot = TopSlot(face)
+        local slot = MouseSlot(face, index)
         if InCombatLockdown() or not slot or not GetCursorInfo() then
             return
         end
         pcall(C_ActionBar.PutActionInSlot, slot)
     end)
     secure:SetScript("OnDragStart", function()
-        local slot = TopSlot(face)
+        local slot = MouseSlot(face, index)
         if InCombatLockdown() or not slot or not C_ActionBar.HasAction(slot) then
             return
         end
@@ -335,7 +363,7 @@ local function CreateFace(index)
         PickupAction(slot)
     end)
     secure:SetScript("OnEnter", function(self)
-        local slot = TopSlot(face)
+        local slot = MouseSlot(face, index)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if slot and C_ActionBar.HasAction(slot) then
             GameTooltip:SetAction(slot)
@@ -625,6 +653,8 @@ events:SetScript("OnEvent", function(_, event, slot)
     if event == "PLAYER_LOGIN" then
         HookBindingStack()
         return
+    elseif event == "PLAYER_ENTERING_WORLD" and not ns.topFaceSlots and ns.ReserveTopFaceSlots then
+        ns.ReserveTopFaceSlots()
     elseif event == "PLAYER_REGEN_ENABLED" and not pending then
         return
     elseif event == "ACTIONBAR_SLOT_CHANGED" then

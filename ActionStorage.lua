@@ -301,6 +301,14 @@ local function ReserveTopFaceSlots()
     -- Each cell keeps its slot while that slot is still ours to use; a cell
     -- whose slot is not (or that is new) gets a free one.
     local saved = type(GripbarCharDB.topFaceSlots) == "table" and GripbarCharDB.topFaceSlots or {}
+    -- Version 1 chose the LB / RB cells before the game had loaded the slots'
+    -- contents, so they could land on slots holding actions: chosen again.
+    if GripbarCharDB.topFaceSlotsVersion ~= 2 then
+        for i = 9, #saved do
+            saved[i] = nil
+        end
+        GripbarCharDB.topFaceSlotsVersion = 2
+    end
     local cells, missing = {}, 0
     for i = 1, TOP_FACE_SLOT_COUNT do
         local slot = saved[i]
@@ -345,10 +353,12 @@ end
 local function InitializeNativeStorage()
     InitializePageOneStorage()
     ReservePageSlots()
-    ReserveTopFaceSlots()
 end
 
 ns.DiscoverNativeStorageSlots = DiscoverNativeStorageSlots
 ns.InitializeNativeStorage = InitializeNativeStorage
 ns.GetNativeSlot = GetNativeSlot
 ns.ForEachReservedSlot = ForEachReservedSlot
+-- Once the game has loaded the slots' contents (PLAYER_ENTERING_WORLD): an
+-- empty-looking slot is then really empty.
+ns.ReserveTopFaceSlots = ReserveTopFaceSlots
