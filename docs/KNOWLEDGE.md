@@ -8,6 +8,7 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
   `git clone --depth 1 --filter=blob:none --sparse <repo>` then `git sparse-checkout set Interface/AddOns/Blizzard_GamepadActionBars ...`
 - Key folders: `Blizzard_GamepadActionBars` (crossbar, styles, targeting bars), `Blizzard_GamepadSharedUtility/InputBindingStack` (how the game binds pad keys), `Blizzard_GamepadTargeting` (bumper tap-to-target), `Blizzard_RestrictedAddOnEnvironment` (what secure snippets may call), `Blizzard_FrameXML/Bindings_Camelot.xml` (what each key binding really calls).
 - **Debug log** (`Debug.lua`, `/grip debug`): Lua errors of every addon, `ADDON_ACTION_BLOCKED` / `FORBIDDEN`, Gripbar messages and a `/grip diag` snapshot 5 s after login, in `WTF/Account/<account>/SavedVariables/Gripbar.lua` (`GripbarDebugLog`). Written only on `/reload` or logout; a client crash loses the session. When the game offers to disable an addon, press Ignore, then `/reload`.
+- Never log from code that runs on every redraw or event: the log keeps 800 lines and per-redraw lines push the real errors out within seconds. Log changes and failures only.
 - Lua syntax check outside the game: `luaparser` (`from luaparser import ast; ast.parse(text)`).
 - A new file in the addon needs a full client restart; changed files need `/reload`. Check that a test session ran the code you think it did (the log's login time against the commit time).
 
