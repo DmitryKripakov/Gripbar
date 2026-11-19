@@ -66,6 +66,7 @@ local function SetSlotInsets(visual, size)
 end
 local focusRouting = ns.focusRouting
 local Print = ns.Print
+local L = ns.L
 local GetMedia = ns.GetMedia
 local GetPaddleTexture = ns.GetPaddleTexture
 
@@ -1087,7 +1088,7 @@ end
 
 local function SetFallbackAction(button, action)
     if InCombatLockdown() then
-        Print("Actions cannot be changed during combat.")
+        Print(L("Actions cannot be changed during combat."))
         return
     end
 
@@ -1103,7 +1104,7 @@ local function PutCursorIntoButton(button)
         return
     end
     if InCombatLockdown() then
-        Print("Actions cannot be changed during combat.")
+        Print(L("Actions cannot be changed during combat."))
         return
     end
 
@@ -1115,7 +1116,7 @@ local function PutCursorIntoButton(button)
 
         local ok = pcall(C_ActionBar.PutActionInSlot, button.actionSlot)
         if not ok then
-            Print("The client rejected that action for native gamepad storage.")
+            Print(L("The client rejected that action for native gamepad storage."))
             return
         end
         UpdateButtonVisual(button)
@@ -1124,7 +1125,7 @@ local function PutCursorIntoButton(button)
 
     local action = ConvertCursorToFallbackAction()
     if not action then
-        Print("That cursor payload is not supported by fallback storage.")
+        Print(L("That cursor payload is not supported by fallback storage."))
         return
     end
 
@@ -1178,7 +1179,7 @@ end
 
 local function ClearButtonAction(button)
     if InCombatLockdown() then
-        Print("Actions cannot be changed during combat.")
+        Print(L("Actions cannot be changed during combat."))
         return
     end
 
@@ -1199,8 +1200,8 @@ local function ShowTooltip(button)
 
     local behavior = GetPaddleBehavior(button.paddleIndex)
     if behavior.icon then
-        GameTooltip:AddLine("Paddle " .. PaddleName(button.paddleIndex) .. ": " .. behavior.label)
-        GameTooltip:AddLine("This paddle pages the native crossbar on every layer. Change it on the Gripbar settings page or with /grip paddle.", 1, 1, 1, true)
+        GameTooltip:AddLine(string.format(L("Paddle %s: %s"), PaddleName(button.paddleIndex), L(behavior.label)))
+        GameTooltip:AddLine(L("This paddle pages the native crossbar on every layer. Change it on the Gripbar settings page or with /grip paddle."), 1, 1, 1, true)
         GameTooltip:Show()
         return
     end
@@ -1220,7 +1221,7 @@ local function ShowTooltip(button)
             return
         elseif action.kind == "macro" then
             local name, _, body = GetMacroInfo(action.id)
-            GameTooltip:AddLine(name or "Macro")
+            GameTooltip:AddLine(name or L("Macro"))
             if body and body ~= "" then
                 GameTooltip:AddLine(body, 1, 1, 1, true)
             end
@@ -1230,10 +1231,10 @@ local function ShowTooltip(button)
     end
 
     local panel = PANELS[button.panelIndex]
-    GameTooltip:AddLine(panel.label .. " · Paddle " .. PaddleName(button.paddleIndex))
-    GameTooltip:AddLine("Drop an action here.", 1, 1, 1, true)
+    GameTooltip:AddLine(string.format(L("%s · Paddle %s"), panel.label, PaddleName(button.paddleIndex)))
+    GameTooltip:AddLine(L("Drop an action here."), 1, 1, 1, true)
     if ns.nativeStorageEnabled then
-        GameTooltip:AddLine("Native gamepad action storage", 0.55, 0.8, 1.0, true)
+        GameTooltip:AddLine(L("Native gamepad action storage"), 0.55, 0.8, 1.0, true)
     end
     GameTooltip:Show()
 end

@@ -55,7 +55,8 @@ local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "IconOverlay", "Bor
     "HighlightTexture", "CheckedTexture", "Flash", "NewActionTexture", "SpellHighlightTexture" }
 
 local faces = {}       -- per face: { secure, top = display, lb = display, rb = display }
-local status = "off"
+local status = "off"       -- English, for the debug log and diagnostics
+local shownStatus = L("off") -- the same, as chat shows it
 local pending = false
 local gridShown = false
 local lastError
@@ -922,14 +923,21 @@ local function ApplyTopFace()
 
     if not GripbarDB or GripbarDB.topFace ~= true then
         status = "off"
+        shownStatus = L("off")
     elseif not ns.topFaceSlots then
         status = "on, but no free action slots for the cells (" .. tostring(ns.topFaceStatus) .. ")"
+        shownStatus = string.format(L("on, but no free action slots for the cells (%s)"), L(tostring(ns.topFaceStatus)))
     elseif not faces[1] then
         status = "on, but the game's top bar was not found"
+        shownStatus = L("on, but the game's top bar was not found")
     else
+        local core = CoreBindingsOnly()
         status = string.format("on: %d of 4 buttons bound%s%s", taken,
-            CoreBindingsOnly() and "" or " (a menu holds the face buttons)",
+            core and "" or " (a menu holds the face buttons)",
             edit and ("; showing " .. EDIT_LABELS[edit]) or "")
+        shownStatus = string.format(L("on: %d of 4 buttons bound%s%s"), taken,
+            core and "" or L(" (a menu holds the face buttons)"),
+            edit and string.format(L("; showing %s"), L(EDIT_LABELS[edit])) or "")
     end
     if status ~= loggedStatus and ns.Log then
         loggedStatus = status
@@ -937,6 +945,7 @@ local function ApplyTopFace()
     end
     if lastError then
         status = status .. "; error " .. lastError
+        shownStatus = string.format(L("%s; error %s"), shownStatus, lastError)
     end
 end
 
@@ -953,14 +962,14 @@ local function Toggle()
     if ns.RefreshSettingsKeyRows then
         ns.RefreshSettingsKeyRows()
     end
-    Print("Own X / Y / B / A: " .. status .. ".")
+    Print(string.format(L("Own X / Y / B / A: %s."), shownStatus))
 end
 
 -- Which cells the top bar shows to set them up: off (as in play), normal,
 -- enemy (no target needed), LB, RB (no bumper needed). nil cycles.
 local function SetEditMode(mode)
     if InCombatLockdown() then
-        Print("Change the cells shown out of combat.")
+        Print(L("Change the cells shown out of combat."))
         return
     end
     if mode == nil then
@@ -987,8 +996,8 @@ local function SetEditMode(mode)
     if ns.RefreshSettingsKeyRows then
         ns.RefreshSettingsKeyRows()
     end
-    Print(mode and ("The top bar shows the " .. EDIT_LABELS[mode] .. " of X / Y / B / A: drop actions on them. /grip face edit off when done.")
-        or "The top bar's X / Y / B / A are back to play.")
+    Print(mode and string.format(L("The top bar shows the %s of X / Y / B / A: drop actions on them. /grip face edit off when done."), L(EDIT_LABELS[mode]))
+        or L("The top bar's X / Y / B / A are back to play."))
 end
 
 -- Empties one cell: the game's own button shows there again.
@@ -1005,7 +1014,7 @@ local function ClearCell(kind, faceName)
         return
     end
     if InCombatLockdown() then
-        Print("Change the cells out of combat.")
+        Print(L("Change the cells out of combat."))
         return
     end
     local slot = Cell(index, kind)
@@ -1013,7 +1022,7 @@ local function ClearCell(kind, faceName)
         PickupAction(slot)
         ClearCursor()
     end
-    Print("Cleared the " .. kind .. " cell of " .. faceName .. ".")
+    Print(string.format(L("Cleared the %s cell of %s."), kind, faceName))
 end
 
 local function HandleCommand(args)
@@ -1102,7 +1111,7 @@ ns.HandleTopFaceCommand = HandleCommand
 ns.SetTopFaceEditMode = SetEditMode
 ns.GetTopFaceEditLabel = function()
     local mode = GripbarDB and GripbarDB.topFaceEdit
-    return mode and EDIT_LABELS[mode] or "as in play"
+    return mode and L(EDIT_LABELS[mode]) or L("as in play")
 end
 ns.GetTopFaceStatus = function()
     return status

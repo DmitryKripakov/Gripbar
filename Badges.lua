@@ -9,6 +9,7 @@
 local _, ns = ...
 
 local Print = ns.Print
+local L = ns.L
 local SafeCall = ns.SafeCall
 
 local BADGES = {
@@ -203,16 +204,16 @@ local function HandleBadgeCommand(args)
         else
             local x, y = tonumber(args[3]), tonumber(args[4])
             if not x or not y then
-                Print("Usage: /grip badge <lt|rt|both> <x> <y>  (-200..200), /grip badge <lt|rt|both> reset, /grip badge reset")
+                Print(string.format(L("Usage: %s"), "/grip badge <lt|rt|both> <x> <y>  (-200..200), /grip badge <lt|rt|both> reset, /grip badge reset"))
                 return
             end
             SetBadgeOffset(key, x, y)
         end
     elseif key ~= "" then
-        Print("Usage: /grip badge <lt|rt|both> <x> <y>  (-200..200), /grip badge <lt|rt|both> reset, /grip badge reset")
+        Print(string.format(L("Usage: %s"), "/grip badge <lt|rt|both> <x> <y>  (-200..200), /grip badge <lt|rt|both> reset, /grip badge reset"))
         return
     end
-    Print("Native trigger badges: " .. GetBadgeDiagnostic())
+    Print(string.format(L("Native trigger badges: %s"), GetBadgeDiagnostic()))
 end
 
 local events = CreateFrame("Frame")

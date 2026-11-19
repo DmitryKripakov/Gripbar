@@ -16,6 +16,7 @@
 local _, ns = ...
 
 local Print = ns.Print
+local L = ns.L
 
 local PREFIX = "GB "
 
@@ -190,11 +191,14 @@ local function FindShortcuts()
             if atlas and not duplicate and frame.IsProtected and frame:IsProtected() then
                 if not seen[key] then
                     seen[key] = true
-                    local label = SHORTCUT_NAMES[key] or ("Game button " .. (#found + 1))
+                    local number = #found + 1
+                    -- label names the macro (English); shown is what the picker displays.
+                    local label = SHORTCUT_NAMES[key] or ("Game button " .. number)
                     found[#found + 1] = {
                         key = "sc:" .. key, label = label, name = frame:GetName(), atlas = atlas,
+                        shown = not SHORTCUT_NAMES[key] and string.format(L("Game button %d"), number) or nil,
                         icon = SHORTCUT_ICONS[key] or "INV_Misc_QuestionMark",
-                        tip = "A shortcut button of the game's LB / RB bars (" .. atlas .. ").",
+                        tip = string.format(L("A shortcut button of the game's LB / RB bars (%s)."), atlas),
                     }
                 end
             end
@@ -229,7 +233,7 @@ end
 -- Creates (or refreshes) a def's macro, out of combat. Returns its index.
 local function EnsureMacro(def)
     if InCombatLockdown() then
-        Print("Game actions cannot be created during combat.")
+        Print(L("Game actions cannot be created during combat."))
         return nil
     end
     local name = MacroName(def)
@@ -254,7 +258,7 @@ local function EnsureMacro(def)
     end
     local ok, created = pcall(CreateMacro, name, icon, body, false)
     if not ok or not created or created == 0 then
-        Print("Could not create the macro \"" .. name .. "\": the account's general macros may be full.")
+        Print(string.format(L("Could not create the macro \"%s\": the account's general macros may be full."), name))
         return nil
     end
     -- A slot the macro is dropped on reads it fresh (it was only picked up
@@ -627,7 +631,7 @@ local function Section(frame, title, defs, y)
         b.label:SetPoint("TOP", b, "BOTTOM", 0, -2)
         b.label:SetWidth(CELL + 4)
         b.label:SetMaxLines(1)
-        b.label:SetText(def.label)
+        b.label:SetText(def.shown or L(def.label))
         b:RegisterForDrag("LeftButton")
         b:RegisterForClicks("LeftButtonUp")
         b:SetScript("OnDragStart", function()
@@ -638,11 +642,11 @@ local function Section(frame, title, defs, y)
         end)
         b:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:AddLine(def.label)
-            GameTooltip:AddLine(def.tip, 1, 1, 1, true)
-            GameTooltip:AddLine("Macro: " .. MacroName(def), 0.7, 0.7, 0.7)
+            GameTooltip:AddLine(def.shown or L(def.label))
+            GameTooltip:AddLine(L(def.tip), 1, 1, 1, true)
+            GameTooltip:AddLine(string.format(L("Macro: %s"), MacroName(def)), 0.7, 0.7, 0.7)
             if not def.body then
-                GameTooltip:AddLine("On Gripbar slots: the game's live icon, and holding works.", 0.7, 0.7, 0.7, true)
+                GameTooltip:AddLine(L("On Gripbar slots: the game's live icon, and holding works."), 0.7, 0.7, 0.7, true)
             end
             GameTooltip:Show()
         end)
@@ -675,10 +679,10 @@ local function CreatePicker()
     end
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.title:SetPoint("TOP", 0, -16)
-    frame.title:SetText("Gripbar game actions")
+    frame.title:SetText(L("Gripbar game actions"))
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     hint:SetPoint("TOP", 0, -36)
-    hint:SetText("Drag onto any action slot (or click, then click the slot).")
+    hint:SetText(L("Drag onto any action slot (or click, then click the slot)."))
 
     frame.buttons = {}
     local buttons = {}
@@ -688,9 +692,9 @@ local function CreatePicker()
     for _, def in ipairs(FindShortcuts()) do
         buttons[#buttons + 1] = def
     end
-    local y = Section(frame, "The game's buttons", buttons, -58)
-    y = Section(frame, "Targeting and combat", COMMANDS, y)
-    y = Section(frame, "Windows", WINDOWS, y)
+    local y = Section(frame, L("The game's buttons"), buttons, -58)
+    y = Section(frame, L("Targeting and combat"), COMMANDS, y)
+    y = Section(frame, L("Windows"), WINDOWS, y)
     frame:SetSize(COLUMNS * CELL + 32, -y + 16)
     frame:SetPoint("CENTER", 0, 60)
 
@@ -712,7 +716,7 @@ end
 
 local function TogglePicker()
     if not picker and InCombatLockdown() then
-        Print("The game actions window opens after combat.")
+        Print(L("The game actions window opens after combat."))
         return
     end
     picker = picker or CreatePicker()

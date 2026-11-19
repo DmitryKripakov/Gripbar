@@ -3,6 +3,7 @@ local _, ns = ...
 
 local PADDLE_COUNT = ns.PADDLE_COUNT
 local Print = ns.Print
+local L = ns.L
 local GetPaddleKey = ns.GetPaddleKey
 local GetKeyDisplayName = ns.GetKeyDisplayName
 local UpdatePanelVisibility = ns.UpdatePanelVisibility
@@ -50,7 +51,7 @@ local function RegisterSettings()
     note:SetPoint("TOPLEFT", 6, y)
     note:SetWidth(540)
     note:SetJustifyH("LEFT")
-    note:SetText("With a controller, use the mouse on this page. The gamepad cursor cannot enter it without freezing Forever when Settings is closed. Paddle keys, lock/unlock and reset also work through /grip.")
+    note:SetText(L("With a controller, use the mouse on this page. The gamepad cursor cannot enter it without freezing Forever when Settings is closed. Paddle keys, lock/unlock and reset also work through /grip."))
     y = y - 34
 
     local function AttachTooltip(control, label, tooltip)
@@ -201,78 +202,78 @@ local function RegisterSettings()
         return button
     end
 
-    AddSection("Combat")
+    AddSection(L("Combat"))
 
     AddCheckbox(
         "topFace",
-        "Own X / Y / B / A on the top bar",
-        "The top bar's face buttons take actions of your own, drawn like the game's. Each has five cells: normal; while a living enemy is targeted (the small cell in the button's corner, swapped in on an enemy); with LB, RB or both held (over the game's bumper bars). Drop actions on the buttons and the small cells with the mouse; hold a bumper to drop on its cells. A cell holding nothing leaves the game's own button (Interact, Inspect, Back, Jump, the bumper shortcuts). LT / RT + a face button stay the game's. Also: /grip face, /grip face clear.",
+        L("Own X / Y / B / A on the top bar"),
+        L("The top bar's face buttons take actions of your own, drawn like the game's. Each has five cells: normal; while a living enemy is targeted (the small cell in the button's corner, swapped in on an enemy); with LB, RB or both held (over the game's bumper bars). Drop actions on the buttons and the small cells with the mouse; hold a bumper to drop on its cells. A cell holding nothing leaves the game's own button (Interact, Inspect, Back, Jump, the bumper shortcuts). LT / RT + a face button stay the game's. Also: /grip face, /grip face clear."),
         function()
             ns.ApplyTopFace()
         end
     )
 
     AddButton(
-        "Game actions",
-        "Open",
+        L("Game actions"),
+        L("Open"),
         function()
             ns.ToggleGameActions()
         end,
-        "The top bar's fixed functions (Interact, Inspect, Back, Jump) as macros you can drag onto any slot. On Gripbar slots they show the game's live icon and handle holding (a held jump keeps rising in water). Also: /grip actions."
+        L("The top bar's fixed functions (Interact, Inspect, Back, Jump) as macros you can drag onto any slot. On Gripbar slots they show the game's live icon and handle holding (a held jump keeps rising in water). Also: /grip actions.")
     )
 
-    AddSection("HUD")
+    AddSection(L("HUD"))
 
-    AddSlider("hudScale", "HUD scale", 0.65, 1.50, 0.05,
-        "Resizes every paddle slot around its own centre; positions do not move. 1.00 matches the size of the native crossbar slots.", "left")
-    AddSlider("inactiveOpacity", "Inactive panels opacity", 0.10, 1.0, 0.05,
-        "Fades the three unfocused panels. The native crossbar does not fade unfocused bars, so 1.00 is the default.", "right")
+    AddSlider("hudScale", L("HUD scale"), 0.65, 1.50, 0.05,
+        L("Resizes every paddle slot around its own centre; positions do not move. 1.00 matches the size of the native crossbar slots."), "left")
+    AddSlider("inactiveOpacity", L("Inactive panels opacity"), 0.10, 1.0, 0.05,
+        L("Fades the three unfocused panels. The native crossbar does not fade unfocused bars, so 1.00 is the default."), "right")
 
-    AddSubheader("Top row (L4 / R4)")
-    AddSlider("spreadTopX", "Horizontal", 0, 200, 1,
-        "Distance of the top paddle slots from the centre of their bar, left and right (collapsed units; the focused bar scales it by 1.25 from the bar centre). Also: /grip spread top <x> <y>.", "left")
-    AddSlider("spreadTopY", "Vertical", 0, 200, 1,
-        "How far above the centre of their bar the top paddle slots sit. Also: /grip spread top <x> <y>.", "right")
+    AddSubheader(L("Top row (L4 / R4)"))
+    AddSlider("spreadTopX", L("Horizontal"), 0, 200, 1,
+        L("Distance of the top paddle slots from the centre of their bar, left and right (collapsed units; the focused bar scales it by 1.25 from the bar centre). Also: /grip spread top <x> <y>."), "left")
+    AddSlider("spreadTopY", L("Vertical"), 0, 200, 1,
+        L("How far above the centre of their bar the top paddle slots sit. Also: /grip spread top <x> <y>."), "right")
 
-    AddSubheader("Bottom row (L5 / R5)")
-    AddSlider("spreadBottomX", "Horizontal", 0, 200, 1,
-        "Distance of the bottom paddle slots from the centre of their bar, left and right. Also: /grip spread bottom <x> <y>.", "left")
-    AddSlider("spreadBottomY", "Vertical", 0, 200, 1,
-        "How far below the centre of their bar the bottom paddle slots sit. Also: /grip spread bottom <x> <y>.", "right")
+    AddSubheader(L("Bottom row (L5 / R5)"))
+    AddSlider("spreadBottomX", L("Horizontal"), 0, 200, 1,
+        L("Distance of the bottom paddle slots from the centre of their bar, left and right. Also: /grip spread bottom <x> <y>."), "left")
+    AddSlider("spreadBottomY", L("Vertical"), 0, 200, 1,
+        L("How far below the centre of their bar the bottom paddle slots sit. Also: /grip spread bottom <x> <y>."), "right")
 
-    AddSubheader("Native LT badge (left bar)")
-    AddSlider("badge_lt_x", "Horizontal", -200, 200, 1,
-        "Moves the native LT prompt under the left bar (crossbar units; 0 = where the game puts it). Also: /grip badge lt <x> <y>.", "left")
-    AddSlider("badge_lt_y", "Vertical", -200, 200, 1,
-        "Moves the native LT prompt under the left bar (crossbar units; 0 = where the game puts it). Also: /grip badge lt <x> <y>.", "right")
+    AddSubheader(L("Native LT badge (left bar)"))
+    AddSlider("badge_lt_x", L("Horizontal"), -200, 200, 1,
+        L("Moves the native LT prompt under the left bar (crossbar units; 0 = where the game puts it). Also: /grip badge lt <x> <y>."), "left")
+    AddSlider("badge_lt_y", L("Vertical"), -200, 200, 1,
+        L("Moves the native LT prompt under the left bar (crossbar units; 0 = where the game puts it). Also: /grip badge lt <x> <y>."), "right")
 
-    AddSubheader("Native RT badge (right bar)")
-    AddSlider("badge_rt_x", "Horizontal", -200, 200, 1,
-        "Moves the native RT prompt under the right bar (crossbar units; 0 = where the game puts it). Also: /grip badge rt <x> <y>.", "left")
-    AddSlider("badge_rt_y", "Vertical", -200, 200, 1,
-        "Moves the native RT prompt under the right bar (crossbar units; 0 = where the game puts it). Also: /grip badge rt <x> <y>.", "right")
+    AddSubheader(L("Native RT badge (right bar)"))
+    AddSlider("badge_rt_x", L("Horizontal"), -200, 200, 1,
+        L("Moves the native RT prompt under the right bar (crossbar units; 0 = where the game puts it). Also: /grip badge rt <x> <y>."), "left")
+    AddSlider("badge_rt_y", L("Vertical"), -200, 200, 1,
+        L("Moves the native RT prompt under the right bar (crossbar units; 0 = where the game puts it). Also: /grip badge rt <x> <y>."), "right")
 
-    AddSubheader("Native LT + RT badge (bottom bar)")
-    AddSlider("badge_both_x", "Horizontal", -200, 200, 1,
-        "Moves the native LT + RT prompt under the bottom bar (crossbar units; 0 = where the game puts it). Also: /grip badge both <x> <y>.", "left")
-    AddSlider("badge_both_y", "Vertical", -200, 200, 1,
-        "Moves the native LT + RT prompt under the bottom bar (crossbar units; 0 = where the game puts it). Also: /grip badge both <x> <y>.", "right")
+    AddSubheader(L("Native LT + RT badge (bottom bar)"))
+    AddSlider("badge_both_x", L("Horizontal"), -200, 200, 1,
+        L("Moves the native LT + RT prompt under the bottom bar (crossbar units; 0 = where the game puts it). Also: /grip badge both <x> <y>."), "left")
+    AddSlider("badge_both_y", L("Vertical"), -200, 200, 1,
+        L("Moves the native LT + RT prompt under the bottom bar (crossbar units; 0 = where the game puts it). Also: /grip badge both <x> <y>."), "right")
 
-    AddCheckbox("gamepadOnly", "Only show in gamepad mode",
-        "Hides the paddle panels while the interface is in mouse and keyboard mode.",
+    AddCheckbox("gamepadOnly", L("Only show in gamepad mode"),
+        L("Hides the paddle panels while the interface is in mouse and keyboard mode."),
         function()
             UpdatePanelVisibility()
         end, "left")
-    AddCheckbox("highlightActivePanel", "Highlight focused panel",
-        "Draws the native crossbar focus highlight behind the panel that is currently active. Off by default: the native bar under it already highlights.",
+    AddCheckbox("highlightActivePanel", L("Highlight focused panel"),
+        L("Draws the native crossbar focus highlight behind the panel that is currently active. Off by default: the native bar under it already highlights."),
         function()
             ApplyAppearance()
         end, "right")
 
-    AddSection("Paddles")
+    AddSection(L("Paddles"))
 
     AddButton(
-        "Controller",
+        L("Controller"),
         function()
             return GetProfileChoiceLabel(GetProfileSetting())
         end,
@@ -280,7 +281,7 @@ local function RegisterSettings()
             CycleControllerProfileSetting()
             ns.RefreshSettingsKeyRows()
         end,
-        "Which paddle controller you use: it names the slots and draws their glyphs. Auto detects the Xbox Elite, DualSense Edge, Steam Controller and Razer pads when the game sees them. Click to step through Auto, Xbox Elite / Scuf (P1-P4), DualSense Edge (Fn L / Fn R on top, back buttons below), Steam Controller / Steam Deck (L4 / R4 / L5 / R5), Razer (M1-M4) and Generic (P1-P4); pick one manually when Steam Input, reWASD or a Bluetooth driver hides the real controller. Changing it never touches your paddle keys or actions."
+        L("Which paddle controller you use: it names the slots and draws their glyphs. Auto detects the Xbox Elite, DualSense Edge, Steam Controller and Razer pads when the game sees them. Click to step through Auto, Xbox Elite / Scuf (P1-P4), DualSense Edge (Fn L / Fn R on top, back buttons below), Steam Controller / Steam Deck (L4 / R4 / L5 / R5), Razer (M1-M4) and Generic (P1-P4); pick one manually when Steam Input, reWASD or a Bluetooth driver hides the real controller. Changing it never touches your paddle keys or actions.")
     )
 
     -- One row per paddle: its input and what it does.
@@ -316,67 +317,67 @@ local function RegisterSettings()
 
     local inputHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     inputHeader:SetPoint("TOP", content, "TOPLEFT", 250, y)
-    inputHeader:SetText("Input")
+    inputHeader:SetText(L("Input"))
     local doesHeader = content:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     doesHeader:SetPoint("TOP", content, "TOPLEFT", 400, y)
-    doesHeader:SetText("Does (right-click: back)")
+    doesHeader:SetText(L("Does (right-click: back)"))
     y = y - 16
 
     for paddleIndex = 1, PADDLE_COUNT do
         AddTwoButtons(
             function()
-                return "Paddle " .. ns.GetPaddleName(paddleIndex)
+                return string.format(L("Paddle %s"), ns.GetPaddleName(paddleIndex))
             end,
             {
-                title = "Paddle input",
+                title = L("Paddle input"),
                 text = function() return GetKeyDisplayName(GetPaddleKey(paddleIndex)) end,
                 click = function() StartKeyCapture(paddleIndex, false) end,
-                tooltip = "The input that triggers this paddle. Click it, then press the paddle to assign a new one.",
+                tooltip = L("The input that triggers this paddle. Click it, then press the paddle to assign a new one."),
             },
             {
-                title = "Paddle behavior",
-                text = function() return GetPaddleBehavior(paddleIndex).label end,
+                title = L("Paddle behavior"),
+                text = function() return L(GetPaddleBehavior(paddleIndex).label) end,
                 click = function(_, mouseButton) CyclePaddleBehavior(paddleIndex, mouseButton == "RightButton") end,
                 rightClick = true,
-                tooltip = "Paddle actions fires this paddle's slot on the BASE, LT, RT or LT + RT panel. The other choices turn the paddle into native crossbar paging instead, on every layer: previous page or next page. The slot actions are kept and come back when you switch back. Left-click steps forward, right-click steps back.",
+                tooltip = L("Paddle actions fires this paddle's slot on the BASE, LT, RT or LT + RT panel. The other choices turn the paddle into native crossbar paging instead, on every layer: previous page or next page. The slot actions are kept and come back when you switch back. Left-click steps forward, right-click steps back."),
             }
         )
     end
 
     AddTwoButtons(
-        "Setup",
+        L("Setup"),
         {
-            title = "Assign all four in order",
-            text = "Assign all",
+            title = L("Assign all four in order"),
+            text = L("Assign all"),
             click = function() StartKeyCapture(1, true) end,
-            tooltip = "Prompts for every paddle one after another.",
+            tooltip = L("Prompts for every paddle one after another."),
         },
         {
-            title = "How to set up the paddles",
-            text = "Setup guide",
+            title = L("How to set up the paddles"),
+            text = L("Setup guide"),
             click = function() ToggleGuideFrame() end,
-            tooltip = "Step-by-step instructions for Steam Input and the Xbox Accessories app, plus a live readout of what WoW receives when you press a paddle.",
+            tooltip = L("Step-by-step instructions for Steam Input and the Xbox Accessories app, plus a live readout of what WoW receives when you press a paddle."),
         }
     )
 
-    AddCheckbox("showPaddleBadges", "Paddle prompts on actions",
-        "Shows the paddle's name or glyph on assigned actions of the focused panel, like the native button prompts. Also respects the game's own action bar button prompt setting.",
+    AddCheckbox("showPaddleBadges", L("Paddle prompts on actions"),
+        L("Shows the paddle's name or glyph on assigned actions of the focused panel, like the native button prompts. Also respects the game's own action bar button prompt setting."),
         function()
             ApplyAppearance()
         end, "left")
-    AddCheckbox("showPageArrows", "Page arrows on paging paddles",
-        "Draws the native left or right arrow on the slots of a paddle that pages the crossbar. Off leaves those slots empty; the paddle still pages.",
+    AddCheckbox("showPageArrows", L("Page arrows on paging paddles"),
+        L("Draws the native left or right arrow on the slots of a paddle that pages the crossbar. Off leaves those slots empty; the paddle still pages."),
         function()
             ns.UpdateAllButtonVisuals()
         end, "right")
 
-    AddSection("Page binds (pages 2 and 3)")
+    AddSection(L("Page binds (pages 2 and 3)"))
 
     local note = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", 20, y - 2)
     note:SetWidth(520)
     note:SetJustifyH("LEFT")
-    note:SetText("Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on the layer LT / RT select (for example sent by a Steam Input long press). The top bar's A / B / X / Y are locked on pages 2-3 and are not bound.")
+    note:SetText(L("Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on the layer LT / RT select (for example sent by a Steam Input long press). The top bar's A / B / X / Y are locked on pages 2-3 and are not bound."))
     y = y - 44
 
     -- Two key buttons per row: page 2 and page 3.
@@ -397,7 +398,8 @@ local function RegisterSettings()
             button:SetSize(140, 22)
             button:SetPoint("TOPLEFT", spec[3], y)
             button:SetScript("OnClick", spec[2])
-            AttachTooltip(button, (type(label) == "string" and label or "Page bind") .. (i == 1 and " (page 2)" or " (page 3)"), tooltip)
+            AttachTooltip(button, string.format(i == 1 and L("%s (page 2)") or L("%s (page 3)"),
+                type(label) == "string" and label or L("Page bind")), tooltip)
             if type(spec[1]) == "function" then
                 table.insert(refreshers, function()
                     button:SetText(spec[1]())
@@ -411,17 +413,17 @@ local function RegisterSettings()
 
     local headerPage2 = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     headerPage2:SetPoint("TOP", content, "TOPLEFT", 320, y)
-    headerPage2:SetText("Page 2")
+    headerPage2:SetText(L("Page 2"))
     local headerPage3 = content:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     headerPage3:SetPoint("TOP", content, "TOPLEFT", 470, y)
-    headerPage3:SetText("Page 3")
+    headerPage3:SetText(L("Page 3"))
     y = y - 20
 
     AddPagePair(
-        "Assign all twelve in order",
-        "Assign all", function() ns.StartPageBindCapture(2, 1, true) end,
-        "Assign all", function() ns.StartPageBindCapture(3, 1, true) end,
-        "Press the key for each button in turn. Esc skips a button, Delete clears it."
+        L("Assign all twelve in order"),
+        L("Assign all"), function() ns.StartPageBindCapture(2, 1, true) end,
+        L("Assign all"), function() ns.StartPageBindCapture(3, 1, true) end,
+        L("Press the key for each button in turn. Esc skips a button, Delete clears it.")
     )
 
     for index in ipairs(ns.PAGE_BIND_INPUTS) do
@@ -429,32 +431,32 @@ local function RegisterSettings()
             function()
                 return ns.PageBindInputLabel(ns.PAGE_BIND_INPUTS[index])
             end,
-            function() return ns.GetPageBindKey(2, index) or "Not set" end,
+            function() return ns.GetPageBindKey(2, index) or L("Not set") end,
             function() ns.StartPageBindCapture(2, index, false) end,
-            function() return ns.GetPageBindKey(3, index) or "Not set" end,
+            function() return ns.GetPageBindKey(3, index) or L("Not set") end,
             function() ns.StartPageBindCapture(3, index, false) end,
-            "Click, then press the key for this button. Delete clears it."
+            L("Click, then press the key for this button. Delete clears it.")
         )
     end
 
-    AddSection("Diagnostics")
+    AddSection(L("Diagnostics"))
 
     AddButton(
-        "Gamepad integration",
-        "View Diagnostics",
+        L("Gamepad integration"),
+        L("View Diagnostics"),
         function()
             ShowDiagnosticsFrame()
         end,
-        "Shows native storage, LT/RT detection, and native art status as plain text you can select and copy (Ctrl+C) into a bug report. Same as /grip diag copy; /grip diag prints it to chat."
+        L("Shows native storage, LT/RT detection, and native art status as plain text you can select and copy (Ctrl+C) into a bug report. Same as /grip diag copy; /grip diag prints it to chat.")
     )
 
     AddButton(
-        "Debug log",
-        "On / Off",
+        L("Debug log"),
+        L("On / Off"),
         function()
             ns.ToggleDebug()
         end,
-        "Keeps Lua errors (of every addon), blocked protected actions, Gripbar's messages and a diagnostics snapshot in SavedVariables/Gripbar.lua, which the game writes on /reload and on logout. Also: /grip debug, /grip debug clear."
+        L("Keeps Lua errors (of every addon), blocked protected actions, Gripbar's messages and a diagnostics snapshot in SavedVariables/Gripbar.lua, which the game writes on /reload and on logout. Also: /grip debug, /grip debug clear.")
     )
 
     content:SetHeight(-y + 10)
@@ -491,7 +493,7 @@ local function OpenSettings()
     if ns.settingsCategory and Settings and type(Settings.OpenToCategory) == "function" then
         Settings.OpenToCategory(ns.settingsCategory:GetID())
     else
-        Print("The native Settings UI is not available yet.")
+        Print(L("The native Settings UI is not available yet."))
     end
 end
 

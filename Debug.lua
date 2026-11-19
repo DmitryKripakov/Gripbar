@@ -10,6 +10,7 @@
 --             repeated in a row is kept once with a count).
 --   sessions  the last MAX_SESSIONS logins (client and Gripbar version).
 local _, ns = ...
+local L = ns.L
 
 local MAX_LINES = 800
 local MAX_PROBLEMS = 200
@@ -166,7 +167,7 @@ local function ToggleDebug(args)
         GripbarDebugLog.lines = {}
         GripbarDebugLog.problems = {}
         GripbarDebugLog.lastBody = nil
-        ns.Print("Debug log cleared.")
+        ns.Print(L("Debug log cleared."))
         return
     elseif option == "status" then
         local problems = GripbarDebugLog.problems or {}
@@ -174,13 +175,13 @@ local function ToggleDebug(args)
         for _, record in ipairs(problems) do
             total = total + record.count
         end
-        ns.Print(string.format("Debug log %s: %d distinct problems (%d in all), %d timeline lines, session #%s.",
-            On() and "on" or "off", #problems, total, #(GripbarDebugLog.lines or {}), tostring(GripbarDebugLog.session)))
+        ns.Print(string.format(L("Debug log %s: %d distinct problems (%d in all), %d timeline lines, session #%s."),
+            On() and L("on") or L("off"), #problems, total, #(GripbarDebugLog.lines or {}), tostring(GripbarDebugLog.session)))
         return
     end
     SetEnabled(not On())
-    ns.Print(On() and "Debug log on: errors, blocked actions and Gripbar messages go to SavedVariables/Gripbar.lua (written on /reload or logout). /grip debug status, /grip debug clear."
-        or "Debug log off.")
+    ns.Print(On() and L("Debug log on: errors, blocked actions and Gripbar messages go to SavedVariables/Gripbar.lua (written on /reload or logout). /grip debug status, /grip debug clear.")
+        or L("Debug log off."))
 end
 
 ns.Log = Log

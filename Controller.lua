@@ -5,6 +5,7 @@
 local _, ns = ...
 
 local Print = ns.Print
+local L = ns.L
 local SafeCall = ns.SafeCall
 local FindRawInputDevice = ns.FindRawInputDevice
 
@@ -183,9 +184,9 @@ end
 local function GetProfileChoiceLabel(setting)
     if setting == "auto" then
         local profile = GetControllerProfile()
-        return "Auto (" .. PROFILES[profile.detectedKey].label .. ")"
+        return string.format(L("Auto (%s)"), L(PROFILES[profile.detectedKey].label))
     end
-    return PROFILES[setting].label
+    return L(PROFILES[setting].label)
 end
 
 local function SetControllerProfileSetting(setting)
@@ -251,14 +252,14 @@ local function HandleControllerCommand(argument)
     if argument and argument ~= "" then
         local setting = PROFILE_ARGUMENTS[argument:lower()]
         if not setting then
-            Print("Usage: /grip controller [auto|elite|edge|steam|razer|generic]")
+            Print(string.format(L("Usage: %s"), "/grip controller [auto|elite|edge|steam|razer|generic]"))
             return
         end
         SetControllerProfileSetting(setting)
     end
     local profile = RefreshControllerProfile()
-    Print(string.format("Controller profile: %s (%s).", profile.label,
-        profile.manual and "set manually" or "auto-detected"))
+    Print(string.format(L("Controller profile: %s (%s)."), L(profile.label),
+        profile.manual and L("set manually") or L("auto-detected")))
 end
 
 ns.RefreshControllerProfile = RefreshControllerProfile

@@ -11,6 +11,7 @@ local addon = ns.addon
 local buttons = ns.buttons
 local focusRouting = ns.focusRouting
 local Print = ns.Print
+local L = ns.L
 local SafeCall = ns.SafeCall
 local IsSecret = ns.IsSecret
 local EnsureDatabase = ns.EnsureDatabase
@@ -153,12 +154,12 @@ local function ClearSlot(panelArg, paddleArg)
     local paddleIndex = tonumber(paddleArg)
     if not panelIndex or not paddleIndex or paddleIndex ~= math.floor(paddleIndex)
         or paddleIndex < 1 or paddleIndex > PADDLE_COUNT then
-        Print("Usage: /grip clear <base|lt|rt|both> <1-4>")
+        Print(string.format(L("Usage: %s"), "/grip clear <base|lt|rt|both> <1-4>"))
         return
     end
 
     ClearButtonAction(buttons[panelIndex][paddleIndex])
-    Print(string.format("Cleared %s P%d.", PANELS[panelIndex].label, paddleIndex))
+    Print(string.format(L("Cleared %s P%d."), PANELS[panelIndex].label, paddleIndex))
 end
 
 -- /grip paddle [1-4] [actions|prev|next]
@@ -166,25 +167,25 @@ local function HandlePaddleCommand(paddleArg, behaviorArg)
     local paddleIndex = tonumber(paddleArg)
     if paddleArg and (not paddleIndex or paddleIndex ~= math.floor(paddleIndex)
         or paddleIndex < 1 or paddleIndex > PADDLE_COUNT) then
-        Print("Usage: /grip paddle [1-4] [actions|prev|next]")
+        Print(string.format(L("Usage: %s"), "/grip paddle [1-4] [actions|prev|next]"))
         return
     end
 
     if paddleIndex and behaviorArg then
         local value = ParsePaddleBehavior(behaviorArg)
         if not value then
-            Print("Usage: /grip paddle [1-4] [actions|prev|next]")
+            Print(string.format(L("Usage: %s"), "/grip paddle [1-4] [actions|prev|next]"))
             return
         end
         SetPaddleBehavior(paddleIndex, value)
         if InCombatLockdown() then
-            Print("The new paddle behavior applies after combat.")
+            Print(L("The new paddle behavior applies after combat."))
         end
     end
 
     for index = 1, PADDLE_COUNT do
         if not paddleIndex or index == paddleIndex then
-            Print(string.format("%s: %s", PaddleName(index), GetPaddleBehavior(index).label))
+            Print(string.format("%s: %s", PaddleName(index), L(GetPaddleBehavior(index).label)))
         end
     end
 end
@@ -194,30 +195,30 @@ local function PaddleName(index)
 end
 
 local function PrintHelp()
-    Print("Commands (/gripbar works the same as /grip):")
-    Print("/grip spread [top|bottom] [x y] | reset - show or set how far the paddles sit from their bar centre (default top 26 32, bottom 26 32)")
-    Print("/grip clear <base|lt|rt|both> <1-4> - clear one paddle action")
-    Print("/grip or /grip options - open native settings")
-    Print("/grip diag - show native gamepad integration diagnostics")
-    Print("/grip debug [status | clear] - toggle the debug log (errors and blocked actions kept apart, counted; a timeline; sessions) in SavedVariables/Gripbar.lua")
-    Print("/grip diag copy - open the diagnostics as copyable text")
-    Print("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars")
-    Print("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it")
-    Print("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot")
-    Print("/grip face - toggle: your own actions on the top bar's X / Y / B / A (cells: normal, living enemy targeted, LB held, RB held)")
-    Print("/grip face edit [normal | enemy | lb | rb | lbrb | off] - show one kind of cells on the top bar to drop actions on (no target or bumper needed)")
-    Print("/grip face clear <normal | enemy | lb | rb | lbrb> <x | y | b | a> - empty one cell (the game's own button shows again)")
-    Print("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)")
-    Print("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)")
-    Print("/grip assign [1-4] - assign one paddle, or all four in order, by pressing it")
-    Print("/grip keys [P1 P2 P3 P4 | reset] - show or set the inputs, e.g. /grip keys F13 F14 F15 F16")
-    Print("/grip controller [auto|elite|edge|steam|razer|generic] - show or set the controller profile (button names and glyphs)")
-    Print("/grip paddle [1-4] [actions|prev|next] - show or set what a paddle does: its actions, or crossbar paging")
-    Print("/grip test - print which raw controller buttons fire when you press the paddles")
-    Print("/grip glowtest - toggle the proc glow on every filled slot, to check that it draws")
-    Print("/grip learn - press P1-P4 in order to map them to PADPADDLE1-4 in the client's gamepad config")
-    Print("/grip learn clear - remove the addon's device config again")
-    Print("/grip learn force - allow rebinding raw buttons the client already uses (steals them from the native UI)")
+    Print(L("Commands (/gripbar works the same as /grip):"))
+    Print(L("/grip spread [top|bottom] [x y] | reset - show or set how far the paddles sit from their bar centre (default top 26 32, bottom 26 32)"))
+    Print(L("/grip clear <base|lt|rt|both> <1-4> - clear one paddle action"))
+    Print(L("/grip or /grip options - open native settings"))
+    Print(L("/grip diag - show native gamepad integration diagnostics"))
+    Print(L("/grip debug [status | clear] - toggle the debug log (errors and blocked actions kept apart, counted; a timeline; sessions) in SavedVariables/Gripbar.lua"))
+    Print(L("/grip diag copy - open the diagnostics as copyable text"))
+    Print(L("/grip badge [lt|rt|both] [x y | reset] - move the native LT / RT / LT + RT badges under the crossbar bars"))
+    Print(L("/grip binds [assign <2|3> | clear [2|3] | <2|3> <button> <KEY>] - keys that fire a button's slot on crossbar page 2 or 3 without switching to it"))
+    Print(L("/grip actions - the game's Interact / Inspect / Back / Jump as macros to drag onto any slot"))
+    Print(L("/grip face - toggle: your own actions on the top bar's X / Y / B / A (cells: normal, living enemy targeted, LB held, RB held)"))
+    Print(L("/grip face edit [normal | enemy | lb | rb | lbrb | off] - show one kind of cells on the top bar to drop actions on (no target or bumper needed)"))
+    Print(L("/grip face clear <normal | enemy | lb | rb | lbrb> <x | y | b | a> - empty one cell (the game's own button shows again)"))
+    Print(L("/grip atlas - copyable report of the native crossbar art (to match the L4 / R4 / L5 / R5 glyphs)"))
+    Print(L("/grip guide - open the setup guide (Xbox Accessories / Steam Input steps, live input readout)"))
+    Print(L("/grip assign [1-4] - assign one paddle, or all four in order, by pressing it"))
+    Print(L("/grip keys [P1 P2 P3 P4 | reset] - show or set the inputs, e.g. /grip keys F13 F14 F15 F16"))
+    Print(L("/grip controller [auto|elite|edge|steam|razer|generic] - show or set the controller profile (button names and glyphs)"))
+    Print(L("/grip paddle [1-4] [actions|prev|next] - show or set what a paddle does: its actions, or crossbar paging"))
+    Print(L("/grip test - print which raw controller buttons fire when you press the paddles"))
+    Print(L("/grip glowtest - toggle the proc glow on every filled slot, to check that it draws"))
+    Print(L("/grip learn - press P1-P4 in order to map them to PADPADDLE1-4 in the client's gamepad config"))
+    Print(L("/grip learn clear - remove the addon's device config again"))
+    Print(L("/grip learn force - allow rebinding raw buttons the client already uses (steals them from the native UI)"))
 end
 
 SLASH_GRIPBAR1 = "/grip"
@@ -244,13 +245,13 @@ SlashCmdList.GRIPBAR = function(message)
     elseif command == "spread" then
         -- /grip spread [top|bottom] <x> <y>, or /grip spread reset
         local option = (args[2] or ""):lower()
-        local L = ns.LAYOUT
+        local layout = ns.LAYOUT
         local function Clamp(value)
-            return math.max(0, math.min(L.PADDLE_SPREAD_MAX, value))
+            return math.max(0, math.min(layout.PADDLE_SPREAD_MAX, value))
         end
         if option == "reset" then
-            GripbarDB.spreadTopX, GripbarDB.spreadTopY = L.SPREAD_TOP_X, L.SPREAD_TOP_Y
-            GripbarDB.spreadBottomX, GripbarDB.spreadBottomY = L.SPREAD_BOTTOM_X, L.SPREAD_BOTTOM_Y
+            GripbarDB.spreadTopX, GripbarDB.spreadTopY = layout.SPREAD_TOP_X, layout.SPREAD_TOP_Y
+            GripbarDB.spreadBottomX, GripbarDB.spreadBottomY = layout.SPREAD_BOTTOM_X, layout.SPREAD_BOTTOM_Y
         elseif args[2] then
             local rows = { top = true, bottom = true }
             local first = 2
@@ -263,7 +264,7 @@ SlashCmdList.GRIPBAR = function(message)
             end
             local x, y = tonumber(args[first]), tonumber(args[first + 1] or args[first])
             if not x or not y then
-                Print("Usage: /grip spread [top|bottom] <x> <y>  (0-200, default top 26 32, bottom 26 32), or /grip spread reset")
+                Print(L("Usage: /grip spread [top|bottom] <x> <y>  (0-200, default top 26 32, bottom 26 32), or /grip spread reset"))
                 return
             end
             if rows.top then
@@ -276,12 +277,12 @@ SlashCmdList.GRIPBAR = function(message)
         if args[2] then
             if InCombatLockdown() then
                 ns.pendingAppearanceRefresh = true
-                Print("The new spread applies after combat.")
+                Print(L("The new spread applies after combat."))
             else
                 ApplyAppearance()
             end
         end
-        Print(string.format("Paddle spread: top row %d / %d, bottom row %d / %d (horizontal / vertical).",
+        Print(string.format(L("Paddle spread: top row %d / %d, bottom row %d / %d (horizontal / vertical)."),
             GripbarDB.spreadTopX, GripbarDB.spreadTopY, GripbarDB.spreadBottomX, GripbarDB.spreadBottomY))
     elseif command == "clear" then
         ClearSlot(args[2], args[3])
@@ -314,7 +315,7 @@ SlashCmdList.GRIPBAR = function(message)
                 SetPaddleKey(paddleIndex, "PADPADDLE" .. paddleIndex, true)
             end
             ApplyPaddleKeys(true)
-            Print("Paddle inputs reset to the native paddle keys.")
+            Print(L("Paddle inputs reset to the native paddle keys."))
         else
             for paddleIndex = 1, PADDLE_COUNT do
                 if args[paddleIndex + 1] then
@@ -334,16 +335,16 @@ SlashCmdList.GRIPBAR = function(message)
         ns.spellAlertTestEnabled = not ns.spellAlertTestEnabled
         local shown, failed = SetSpellAlertTest(ns.spellAlertTestEnabled)
         if ns.spellAlertTestEnabled then
-            Print(string.format("Glow test on: %d slot(s) glowing, %d failed to create the glow. Type /grip glowtest again to stop.", shown, failed))
+            Print(string.format(L("Glow test on: %d slot(s) glowing, %d failed to create the glow. Type /grip glowtest again to stop."), shown, failed))
         else
-            Print("Glow test off.")
+            Print(L("Glow test off."))
         end
     elseif command == "test" then
         StartRawInputTest()
     elseif command == "learn" then
         local option = (args[2] or ""):lower()
         if option == "cancel" or option == "stop" then
-            StopInputWatcher("Learning cancelled; nothing was changed.")
+            StopInputWatcher(L("Learning cancelled; nothing was changed."))
         elseif option == "clear" or option == "reset" then
             StopInputWatcher(nil)
             ClearLearnedPaddleMapping()
@@ -392,7 +393,7 @@ local function CheckStanceOverlap()
     if overlap then
         stanceOverlapWarned[first] = true
         Print(string.format(
-            "Warning: this stance bar uses action slots %d-%d, which include paddle slot %d. Actions placed on either may replace each other. Please report this with /grip diag output.",
+            L("Warning: this stance bar uses action slots %d-%d, which include paddle slot %d. Actions placed on either may replace each other. Please report this with /grip diag output."),
             first, last, overlap
         ))
     end

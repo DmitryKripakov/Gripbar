@@ -17,6 +17,7 @@
 local _, ns = ...
 
 local Print = ns.Print
+local L = ns.L
 local SafeCall = ns.SafeCall
 
 local PAGES = { 2, 3 }
@@ -44,14 +45,15 @@ local BAR_KEYS = { "topBar", "leftBar", "rightBar", "bottomBar" }
 
 local owner = CreateFrame("Frame", "GripbarPageBindOwner", UIParent)
 local secureButtons = {} -- ["page:layer:index"] = button
-local status = "not set up"
+local status = "not set up"       -- English, for diagnostics
+local shownStatus = L("not set up") -- the same, as chat shows it
 
 local function InputLabel(input)
     if input.paddle then
         local name = ns.GetPaddleName and ns.GetPaddleName(input.paddle) or ("P" .. input.paddle)
-        return "Grip " .. name
+        return string.format(L("Grip %s"), name)
     end
-    return input.label
+    return L(input.label)
 end
 
 local function KeysForPage(page)
@@ -162,7 +164,7 @@ local function ApplyPageBinds()
     ns.pendingPageBinds = false
     ClearOverrideBindings(owner)
 
-    local parts = {}
+    local parts, shownParts = {}, {}
     for _, page in ipairs(PAGES) do
         local bound, missing = 0, 0
         for index, input in ipairs(INPUTS) do
@@ -188,8 +190,11 @@ local function ApplyPageBinds()
         end
         parts[#parts + 1] = string.format("page %d: %d bindings%s", page, bound,
             missing > 0 and string.format(" (%d slots not found)", missing) or "")
+        shownParts[#shownParts + 1] = string.format(L("page %d: %d bindings%s"), page, bound,
+            missing > 0 and string.format(L(" (%d slots not found)"), missing) or "")
     end
     status = table.concat(parts, "; ")
+    shownStatus = table.concat(shownParts, "; ")
 end
 
 local function SetPageBindKey(page, index, key)
@@ -219,13 +224,13 @@ local IGNORED = { LSHIFT = true, RSHIFT = true, LCTRL = true, RCTRL = true, LALT
 local function UpdateCaptureText()
     local input = INPUTS[capture.index]
     capture.frame.text:SetText(string.format(
-        "Page %d bind: |cffffd100%s|r\nPress its key (or the controller input Steam Input maps to it).\nCurrently: %s.  Esc skips / cancels, Delete clears.",
-        capture.page, InputLabel(input), GetKey(capture.page, capture.index) or "not set"))
+        L("Page %d bind: |cffffd100%s|r\nPress its key (or the controller input Steam Input maps to it).\nCurrently: %s.  Esc skips / cancels, Delete clears."),
+        capture.page, InputLabel(input), GetKey(capture.page, capture.index) or L("not set")))
 end
 
 local function StartCapture(page, index, sequence)
     if InCombatLockdown() then
-        Print("Page binds cannot be assigned during combat.")
+        Print(L("Page binds cannot be assigned during combat."))
         return
     end
     if not capture then
@@ -255,18 +260,18 @@ local function StartCapture(page, index, sequence)
                     capture.index = current + 1
                     UpdateCaptureText()
                 else
-                    StopCapture("Page bind assignment finished.")
+                    StopCapture(L("Page bind assignment finished."))
                 end
                 return
             end
             if key == "DELETE" or key == "BACKSPACE" then
                 SetPageBindKey(page, current, nil)
-                Print(string.format("%s: page %d bind cleared.", InputLabel(INPUTS[current]), page))
+                Print(string.format(L("%s: page %d bind cleared."), InputLabel(INPUTS[current]), page))
             else
                 local existing = GetBindingAction and GetBindingAction(key, false)
                 SetPageBindKey(page, current, key)
-                Print(string.format("%s: page %d bind = %s%s", InputLabel(INPUTS[current]), page, key,
-                    (existing and existing ~= "") and (" (overrides " .. existing .. ")") or ""))
+                Print(string.format(L("%s: page %d bind = %s%s"), InputLabel(INPUTS[current]), page, key,
+                    (existing and existing ~= "") and string.format(L(" (overrides %s)"), existing) or ""))
             end
             if capture.sequence and current < #INPUTS then
                 capture.index = current + 1
@@ -287,13 +292,13 @@ end
 
 local function PrintStatus()
     ApplyPageBinds()
-    Print("Page binds: " .. status .. ". Keys (page 2 / page 3; each also works with LT, RT, LT+RT):")
+    Print(string.format(L("Page binds: %s. Keys (page 2 / page 3; each also works with LT, RT, LT+RT):"), shownStatus))
     for index, input in ipairs(INPUTS) do
         Print(string.format("  %s: %s / %s", InputLabel(input), GetKey(2, index) or "-", GetKey(3, index) or "-"))
     end
 end
 
-local USAGE = "Usage: /grip binds [assign <2|3> [1-12] | clear [2|3] | <2|3> <dpadup|dpadright|dpaddown|dpadleft|y|b|a|x|grip1-4> <KEY|clear>]"
+local USAGE = string.format(L("Usage: %s"), "/grip binds [assign <2|3> [1-12] | clear [2|3] | <2|3> <dpadup|dpadright|dpaddown|dpadleft|y|b|a|x|grip1-4> <KEY|clear>]")
 
 -- /grip binds [assign <page> [n] | clear [page] | <page> <input> <KEY|clear>]
 local function HandleBindsCommand(args)

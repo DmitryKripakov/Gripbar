@@ -3,6 +3,7 @@ local _, ns = ...
 
 local PADDLE_COUNT = ns.PADDLE_COUNT
 local Print = ns.Print
+local L = ns.L
 local SafeCall = ns.SafeCall
 local CacheGamepadButtonIndices = ns.CacheGamepadButtonIndices
 
@@ -124,7 +125,7 @@ end
 local function StartInputWatcher(mode)
     local deviceID, raw = FindRawInputDevice()
     if not raw then
-        Print("No gamepad raw state is available. Make sure the controller is connected and gamepad input is enabled.")
+        Print(L("No gamepad raw state is available. Make sure the controller is connected and gamepad input is enabled."))
         return false
     end
 
@@ -143,8 +144,8 @@ local function StartInputWatcher(mode)
     }
 
     Print(string.format(
-        "%s: %s (vendor %d, product %d) with %s raw buttons.",
-        mode == "learn" and "Learning paddles" or "Testing raw input",
+        L("%s: %s (vendor %d, product %d) with %s raw buttons."),
+        mode == "learn" and L("Learning paddles") or L("Testing raw input"),
         tostring(raw.name),
         tonumber(raw.vendorID) or 0,
         tonumber(raw.productID) or 0,
@@ -157,11 +158,11 @@ end
 -- The client stores addon configs in GamePadConfig_AddOns.json, loaded last.
 local function ApplyLearnedPaddleMapping(watcher)
     if not C_GamePad or type(C_GamePad.SetConfig) ~= "function" then
-        Print("This client does not expose C_GamePad.SetConfig; write the mapping into a GamePadConfig_*.json file instead.")
+        Print(L("This client does not expose C_GamePad.SetConfig; write the mapping into a GamePadConfig_*.json file instead."))
         return false
     end
     if InCombatLockdown() then
-        Print("Gamepad configs cannot be changed during combat. Run /grip learn again after combat.")
+        Print(L("Gamepad configs cannot be changed during combat. Run /grip learn again after combat."))
         return false
     end
 
@@ -199,7 +200,7 @@ local function ApplyLearnedPaddleMapping(watcher)
 
     local ok, err = pcall(C_GamePad.SetConfig, config)
     if not ok then
-        Print("The client rejected the gamepad config: " .. tostring(err))
+        Print(string.format(L("The client rejected the gamepad config: %s"), tostring(err)))
         return false
     end
     if type(C_GamePad.ApplyConfigs) == "function" then
@@ -210,39 +211,39 @@ local function ApplyLearnedPaddleMapping(watcher)
     for paddle = 1, PADDLE_COUNT do
         summary[#summary + 1] = string.format("P%d=raw %d", paddle, watcher.results[paddle])
     end
-    Print("Saved paddle mapping: " .. table.concat(summary, ", ") .. ". Reload the UI if the paddles do not respond immediately.")
+    Print(string.format(L("Saved paddle mapping: %s. Reload the UI if the paddles do not respond immediately."), table.concat(summary, ", ")))
     return true
 end
 
 local function ClearLearnedPaddleMapping()
     if not C_GamePad or type(C_GamePad.DeleteConfig) ~= "function" then
-        Print("This client does not expose C_GamePad.DeleteConfig.")
+        Print(L("This client does not expose C_GamePad.DeleteConfig."))
         return
     end
     if InCombatLockdown() then
-        Print("Gamepad configs cannot be changed during combat.")
+        Print(L("Gamepad configs cannot be changed during combat."))
         return
     end
 
     local _, raw = FindRawInputDevice()
     if not raw then
-        Print("No gamepad raw state is available.")
+        Print(L("No gamepad raw state is available."))
         return
     end
 
     local ok, err = pcall(C_GamePad.DeleteConfig, { vendorID = raw.vendorID, productID = raw.productID })
     if not ok then
-        Print("Could not remove the device config: " .. tostring(err))
+        Print(string.format(L("Could not remove the device config: %s"), tostring(err)))
         return
     end
     if type(C_GamePad.ApplyConfigs) == "function" then
         pcall(C_GamePad.ApplyConfigs)
     end
-    Print(string.format("Removed the addon gamepad config for %s. The client's default mapping is back in effect.", tostring(raw.name)))
+    Print(string.format(L("Removed the addon gamepad config for %s. The client's default mapping is back in effect."), tostring(raw.name)))
 end
 
 local function PrintLearnPrompt(step)
-    Print(string.format("Press paddle P%d now (%d seconds). Type /grip learn cancel to stop.", step, INPUT_WATCH_LEARN_STEP_TIMEOUT))
+    Print(string.format(L("Press paddle P%d now (%d seconds). Type /grip learn cancel to stop."), step, INPUT_WATCH_LEARN_STEP_TIMEOUT))
 end
 
 local function UpdateInputWatcher()
@@ -253,17 +254,17 @@ local function UpdateInputWatcher()
 
     local now = GetTime()
     if watcher.mode == "test" and now - watcher.startedAt > INPUT_WATCH_TEST_DURATION then
-        StopInputWatcher("Raw input test finished.")
+        StopInputWatcher(L("Raw input test finished."))
         return
     end
     if watcher.mode == "learn" and now - watcher.stepStartedAt > INPUT_WATCH_LEARN_STEP_TIMEOUT then
-        StopInputWatcher(string.format("No press detected for P%d. Learning cancelled; nothing was changed.", watcher.step))
+        StopInputWatcher(string.format(L("No press detected for P%d. Learning cancelled; nothing was changed."), watcher.step))
         return
     end
 
     local raw = GetRawState(watcher.deviceID)
     if not raw then
-        StopInputWatcher("Lost the gamepad raw state. Stopped.")
+        StopInputWatcher(L("Lost the gamepad raw state. Stopped."))
         return
     end
 
@@ -282,7 +283,7 @@ local function UpdateInputWatcher()
 
     if watcher.mode == "test" then
         for _, rawIndex in ipairs(pressed) do
-            Print(string.format("Raw button %d pressed (client maps it to %s).", rawIndex, DescribeRawButtonMapping(watcher.config, rawIndex)))
+            Print(string.format(L("Raw button %d pressed (client maps it to %s)."), rawIndex, L(DescribeRawButtonMapping(watcher.config, rawIndex))))
         end
         return
     end
@@ -291,7 +292,7 @@ local function UpdateInputWatcher()
     local rawIndex = pressed[1]
     for paddle, assigned in pairs(watcher.results) do
         if assigned == rawIndex then
-            Print(string.format("Raw button %d is already P%d. Press a different paddle for P%d.", rawIndex, paddle, watcher.step))
+            Print(string.format(L("Raw button %d is already P%d. Press a different paddle for P%d."), rawIndex, paddle, watcher.step))
             return
         end
     end
@@ -305,16 +306,16 @@ local function UpdateInputWatcher()
         or currentMapping:upper():match("^PADPADDLE%d$") ~= nil
     if not isFree and not watcher.force then
         Print(string.format(
-            "Raw button %d is the client's %s button, so the controller is sending this paddle as %s rather than as a paddle. Learning stopped; nothing was changed.",
+            L("Raw button %d is the client's %s button, so the controller is sending this paddle as %s rather than as a paddle. Learning stopped; nothing was changed."),
             rawIndex, currentMapping, currentMapping
         ))
-        Print("Unassign the paddles in the Xbox Accessories app (or switch the profile slot off), reconnect over USB, then run /grip test: the paddles should appear as their own raw buttons. Use /grip learn force only if you really want to take this button away from the native UI.")
+        Print(L("Unassign the paddles in the Xbox Accessories app (or switch the profile slot off), reconnect over USB, then run /grip test: the paddles should appear as their own raw buttons. Use /grip learn force only if you really want to take this button away from the native UI."))
         ns.inputWatcher = nil
         return
     end
 
     watcher.results[watcher.step] = rawIndex
-    Print(string.format("P%d = raw button %d (currently %s).", watcher.step, rawIndex, DescribeRawButtonMapping(watcher.config, rawIndex)))
+    Print(string.format(L("P%d = raw button %d (currently %s)."), watcher.step, rawIndex, L(DescribeRawButtonMapping(watcher.config, rawIndex))))
     watcher.step = watcher.step + 1
     watcher.stepStartedAt = now
 
@@ -332,22 +333,22 @@ end
 
 local function StartRawInputTest()
     if ns.inputWatcher then
-        StopInputWatcher("Stopped watching raw input.")
+        StopInputWatcher(L("Stopped watching raw input."))
         return
     end
     if StartInputWatcher("test") then
-        Print(string.format("Press each paddle. Raw button presses are printed for %d seconds; type /grip test again to stop early.", INPUT_WATCH_TEST_DURATION))
+        Print(string.format(L("Press each paddle. Raw button presses are printed for %d seconds; type /grip test again to stop early."), INPUT_WATCH_TEST_DURATION))
     end
 end
 
 local function StartPaddleLearning(force)
     if ns.inputWatcher then
-        StopInputWatcher("Stopped the previous watcher.")
+        StopInputWatcher(L("Stopped the previous watcher."))
     end
     if StartInputWatcher("learn") then
         ns.inputWatcher.force = force == true
         if force then
-            Print("Force mode: raw buttons already used by the client will be rebound to the paddles.")
+            Print(L("Force mode: raw buttons already used by the client will be rebound to the paddles."))
         end
         PrintLearnPrompt(1)
     end

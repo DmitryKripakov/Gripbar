@@ -5,6 +5,7 @@ local PADDLE_COUNT = ns.PADDLE_COUNT
 local secureDriver = ns.secureDriver
 local buttons = ns.buttons
 local Print = ns.Print
+local L = ns.L
 local GetPaddleKey = ns.GetPaddleKey
 local GetKeyDisplayName = ns.GetKeyDisplayName
 local GetKeyNote = ns.GetKeyNote
@@ -40,7 +41,7 @@ local function ApplyPaddleKeys(announce)
     if InCombatLockdown() then
         ns.pendingSecureRefresh = true
         if announce then
-            Print("Paddle input changes will apply after combat.")
+            Print(L("Paddle input changes will apply after combat."))
         end
         return
     end
@@ -57,7 +58,7 @@ local function ApplyPaddleKeys(announce)
         local key = GetPaddleKey(paddleIndex)
         if key then
             if seen[key] then
-                Print(string.format("%s and %s both use %s; only one of them will fire.", PaddleName(seen[key]), PaddleName(paddleIndex), GetKeyDisplayName(key)))
+                Print(string.format(L("%s and %s both use %s; only one of them will fire."), PaddleName(seen[key]), PaddleName(paddleIndex), GetKeyDisplayName(key)))
             else
                 seen[key] = paddleIndex
             end
@@ -103,9 +104,9 @@ local function UpdateCaptureText()
     if not captureFrame or not captureState then
         return
     end
-    captureFrame.title:SetText(string.format("Assign paddle %s", PaddleName(captureState.paddle)))
+    captureFrame.title:SetText(string.format(L("Assign paddle %s"), PaddleName(captureState.paddle)))
     captureFrame.text:SetText(string.format(
-        "Press the paddle now. Whatever button or key the controller sends will be assigned to %s.\nCurrently: %s.  Esc or Cancel stops.",
+        L("Press the paddle now. Whatever button or key the controller sends will be assigned to %s.\nCurrently: %s.  Esc or Cancel stops."),
         PaddleName(captureState.paddle),
         GetKeyDisplayName(GetPaddleKey(captureState.paddle))
     ))
@@ -123,14 +124,14 @@ local function HandleCapturedKey(key)
     if not allowed then
         Print(reason)
         if captureFrame then
-            captureFrame.text:SetText(string.format("%s\n\nStill waiting for %s. Esc or Cancel stops.", reason, PaddleName(paddle)))
+            captureFrame.text:SetText(string.format(L("%s\n\nStill waiting for %s. Esc or Cancel stops."), reason, PaddleName(paddle)))
         end
         state.startedAt = GetTime()
         return
     end
 
     SetPaddleKey(paddle, key)
-    Print(string.format("%s assigned to %s.", PaddleName(paddle), GetKeyDisplayName(key)))
+    Print(string.format(L("%s assigned to %s."), PaddleName(paddle), GetKeyDisplayName(key)))
 
     if state.sequence and paddle < PADDLE_COUNT then
         state.paddle = paddle + 1
@@ -172,9 +173,9 @@ local function EnsureCaptureFrame()
     frame.cancel = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.cancel:SetSize(110, 22)
     frame.cancel:SetPoint("BOTTOM", 0, 14)
-    frame.cancel:SetText("Cancel")
+    frame.cancel:SetText(L("Cancel"))
     frame.cancel:SetScript("OnClick", function()
-        StopKeyCapture("Assignment cancelled.")
+        StopKeyCapture(L("Assignment cancelled."))
     end)
 
     frame:EnableKeyboard(true)
@@ -183,7 +184,7 @@ local function EnsureCaptureFrame()
     end
     frame:SetScript("OnKeyDown", function(_, key)
         if key == "ESCAPE" then
-            StopKeyCapture("Assignment cancelled.")
+            StopKeyCapture(L("Assignment cancelled."))
             return
         end
         if CAPTURE_IGNORED_KEYS[key] then
@@ -198,7 +199,7 @@ local function EnsureCaptureFrame()
     end)
     frame:SetScript("OnUpdate", function()
         if captureState and GetTime() - captureState.startedAt > CAPTURE_TIMEOUT then
-            StopKeyCapture("No input detected; assignment cancelled.")
+            StopKeyCapture(L("No input detected; assignment cancelled."))
         end
     end)
     frame:SetScript("OnHide", function()
@@ -213,7 +214,7 @@ end
 -- Starts press-to-assign for one paddle, or for P1..P4 in sequence.
 local function StartKeyCapture(paddleIndex, sequence)
     if InCombatLockdown() then
-        Print("Paddle inputs cannot be assigned during combat.")
+        Print(L("Paddle inputs cannot be assigned during combat."))
         return
     end
 
@@ -231,21 +232,21 @@ local function StartKeyCapture(paddleIndex, sequence)
 end
 
 local GUIDE_TEXT = table.concat({
-    "On Windows the Xbox Elite Series 2 does not report its paddles to games. WoW only sees whatever the Xbox Accessories app maps a paddle to. Gripbar never takes over a button the native gamepad UI uses (A/B/X/Y, D-pad, bumpers, triggers, stick clicks, View, Menu), so each paddle has to arrive as an input WoW does not use.",
+    L("On Windows the Xbox Elite Series 2 does not report its paddles to games. WoW only sees whatever the Xbox Accessories app maps a paddle to. Gripbar never takes over a button the native gamepad UI uses (A/B/X/Y, D-pad, bumpers, triggers, stick clicks, View, Menu), so each paddle has to arrive as an input WoW does not use."),
     "",
-    "|cffffd100Option 1: Xbox Accessories app, keyboard key mapping|r",
-    "1. Open Xbox Accessories, select the controller, and edit the profile whose slot is active (the slot LED shows which one).",
-    "2. Map each paddle to a keyboard key by pressing a real key that WoW leaves unbound. On a compact keyboard F9, F10, F11, F12 are the natural set; F6-F8, Page Up/Down, Scroll Lock, Pause, and Numpad keys also work when present. Do not use a key you type in chat. Save the profile.",
-    "3. Below, click Assign and press each paddle. The addon refuses any key that already has a WoW binding and tells you which one.",
-    "4. Share is also free if the app offers it as a paddle target, but that covers only one paddle.",
+    L("|cffffd100Option 1: Xbox Accessories app, keyboard key mapping|r"),
+    L("1. Open Xbox Accessories, select the controller, and edit the profile whose slot is active (the slot LED shows which one)."),
+    L("2. Map each paddle to a keyboard key by pressing a real key that WoW leaves unbound. On a compact keyboard F9, F10, F11, F12 are the natural set; F6-F8, Page Up/Down, Scroll Lock, Pause, and Numpad keys also work when present. Do not use a key you type in chat. Save the profile."),
+    L("3. Below, click Assign and press each paddle. The addon refuses any key that already has a WoW binding and tells you which one."),
+    L("4. Share is also free if the app offers it as a paddle target, but that covers only one paddle."),
     "",
-    "|cffffd100Option 2: Steam Input or reWASD|r",
-    "Same idea, but these tools can send keys that are not on your keyboard (F13-F24), which can never be pressed by accident. Steam: enable the Xbox Extended Feature Support driver under Settings > Controller, add WoW as a non-Steam game, map the paddles in its controller layout, and leave the paddles unassigned in Xbox Accessories.",
+    L("|cffffd100Option 2: Steam Input or reWASD|r"),
+    L("Same idea, but these tools can send keys that are not on your keyboard (F13-F24), which can never be pressed by accident. Steam: enable the Xbox Extended Feature Support driver under Settings > Controller, add WoW as a non-Steam game, map the paddles in its controller layout, and leave the paddles unassigned in Xbox Accessories."),
     "",
     "|cffffd100PlayStation DualSense Edge|r",
-    "Without a profile the Edge's back buttons repeat face buttons, which the addon refuses. Steam Input and reWASD see them as their own inputs: enable PlayStation controller support in Steam, bind the back buttons (and Fn buttons if wanted) to F13-F16 in WoW's controller layout, then assign them here. No PS5 is needed.",
+    L("Without a profile the Edge's back buttons repeat face buttons, which the addon refuses. Steam Input and reWASD see them as their own inputs: enable PlayStation controller support in Steam, bind the back buttons (and Fn buttons if wanted) to F13-F16 in WoW's controller layout, then assign them here. No PS5 is needed."),
     "",
-    "The live line at the bottom shows what WoW receives for any press. If a paddle shows up as A, B, X, Y or another native button, the controller profile is still mirroring it and the addon will refuse it. If a paddle press switches the interface to mouse and keyboard mode, look for an interface style option under Settings > Controls and pin it to gamepad.",
+    L("The live line at the bottom shows what WoW receives for any press. If a paddle shows up as A, B, X, Y or another native button, the controller profile is still mirroring it and the addon will refuse it. If a paddle press switches the interface to mouse and keyboard mode, look for an interface style option under Settings > Controls and pin it to gamepad."),
 }, "\n")
 
 local function EnsureGuideFrame()
@@ -274,7 +275,7 @@ local function EnsureGuideFrame()
 
     frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     frame.title:SetPoint("TOP", 0, -18)
-    frame.title:SetText("Gripbar setup guide")
+    frame.title:SetText(L("Gripbar setup guide"))
 
     frame.body = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     frame.body:SetPoint("TOPLEFT", 24, -48)
@@ -286,7 +287,7 @@ local function EnsureGuideFrame()
 
     frame.rowsHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.rowsHeader:SetPoint("TOPLEFT", frame.body, "BOTTOMLEFT", 0, -14)
-    frame.rowsHeader:SetText("Current paddle inputs")
+    frame.rowsHeader:SetText(L("Current paddle inputs"))
 
     frame.rows = {}
     local previous = frame.rowsHeader
@@ -303,7 +304,7 @@ local function EnsureGuideFrame()
         row.assign = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
         row.assign:SetSize(120, 22)
         row.assign:SetPoint("RIGHT", 0, 0)
-        row.assign:SetText("Assign " .. PaddleName(paddleIndex))
+        row.assign:SetText(string.format(L("Assign %s"), PaddleName(paddleIndex)))
         row.assign:SetScript("OnClick", function()
             StartKeyCapture(paddleIndex, false)
         end)
@@ -316,12 +317,12 @@ local function EnsureGuideFrame()
     frame.lastInput:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -10)
     frame.lastInput:SetWidth(572)
     frame.lastInput:SetJustifyH("LEFT")
-    frame.lastInput:SetText("Last input detected while this window is open: none yet. Press a paddle to see what WoW receives.")
+    frame.lastInput:SetText(L("Last input detected while this window is open: none yet. Press a paddle to see what WoW receives."))
 
     frame.assignAll = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.assignAll:SetSize(170, 22)
     frame.assignAll:SetPoint("BOTTOMLEFT", 22, 16)
-    frame.assignAll:SetText("Assign all by pressing")
+    frame.assignAll:SetText(L("Assign all by pressing"))
     frame.assignAll:SetScript("OnClick", function()
         StartKeyCapture(1, true)
     end)
@@ -329,7 +330,7 @@ local function EnsureGuideFrame()
     frame.openSettings = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.openSettings:SetSize(120, 22)
     frame.openSettings:SetPoint("LEFT", frame.assignAll, "RIGHT", 8, 0)
-    frame.openSettings:SetText("Open settings")
+    frame.openSettings:SetText(L("Open settings"))
     frame.openSettings:SetScript("OnClick", function()
         if ns.settingsCategory and Settings and type(Settings.OpenToCategory) == "function" then
             Settings.OpenToCategory(ns.settingsCategory:GetID())
@@ -339,7 +340,7 @@ local function EnsureGuideFrame()
     frame.close = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     frame.close:SetSize(100, 22)
     frame.close:SetPoint("BOTTOMRIGHT", -22, 16)
-    frame.close:SetText("Close")
+    frame.close:SetText(L("Close"))
     frame.close:SetScript("OnClick", function()
         frame:Hide()
     end)
@@ -352,13 +353,13 @@ local function EnsureGuideFrame()
         frame:EnableKeyboard(true)
         frame:SetScript("OnKeyDown", function(_, key)
             if not CAPTURE_IGNORED_KEYS[key] then
-                frame.lastInput:SetText(string.format("Last input detected: %s (%s)", GetKeyDisplayName(key), key))
+                frame.lastInput:SetText(string.format(L("Last input detected: %s (%s)"), GetKeyDisplayName(key), key))
             end
         end)
         if frame.EnableGamePadButton then
             frame:EnableGamePadButton(true)
             frame:SetScript("OnGamePadButtonDown", function(_, button)
-                frame.lastInput:SetText(string.format("Last input detected: %s (%s)", GetKeyDisplayName(button), button))
+                frame.lastInput:SetText(string.format(L("Last input detected: %s (%s)"), GetKeyDisplayName(button), button))
             end)
         end
     end
@@ -380,9 +381,9 @@ RefreshGuideFrame = function()
         local key = GetPaddleKey(paddleIndex)
         local note = key and GetKeyNote(key)
         local text = string.format("%s:  %s", PaddleName(paddleIndex), GetKeyDisplayName(key))
-        guideFrame.rows[paddleIndex].assign:SetText("Assign " .. PaddleName(paddleIndex))
+        guideFrame.rows[paddleIndex].assign:SetText(string.format(L("Assign %s"), PaddleName(paddleIndex)))
         if key and key:match("^PADPADDLE%d$") then
-            text = text .. "  |cffff6060(native paddle key; not reported by the Elite Series 2 on Windows)|r"
+            text = text .. "  |cffff6060" .. L("(native paddle key; not reported by the Elite Series 2 on Windows)") .. "|r"
         elseif note and not key:match("^F%d+$") and key ~= "PADSOCIAL" then
             text = text .. "  |cffa0a0a0" .. note .. "|r"
         end
@@ -392,7 +393,7 @@ end
 
 local function ToggleGuideFrame()
     if not guideFrame and InCombatLockdown() then
-        Print("The setup guide can be opened after combat.")
+        Print(L("The setup guide can be opened after combat."))
         return
     end
 

@@ -312,31 +312,45 @@ local function GetPaddleKey(paddleIndex)
     return key
 end
 
+-- Translations (Locale.lua) load after this file: looked up at call time.
+local function L(text)
+    return ns.L and ns.L(text) or text
+end
+
+-- A key option's label as shown: "Keyboard F13" keeps the key name.
+local function OptionLabel(label)
+    local keyName = label:match("^Keyboard (.+)$")
+    if keyName then
+        return string.format(L("Keyboard %s"), keyName)
+    end
+    return L(label)
+end
+
 local function GetKeyDisplayName(key)
     if not key or key == "" or key:upper() == "NONE" then
-        return "Not assigned"
+        return L("Not assigned")
     end
     key = key:upper()
     for _, option in ipairs(PADDLE_KEY_OPTIONS) do
         if option.value == key then
-            return option.label
+            return OptionLabel(option.label)
         end
     end
     if NATIVE_RESERVED_KEYS[key] then
-        return NATIVE_RESERVED_KEYS[key]
+        return L(NATIVE_RESERVED_KEYS[key])
     end
-    return "Keyboard " .. key
+    return string.format(L("Keyboard %s"), key)
 end
 
 local function GetKeyNote(key)
     key = key and key:upper() or ""
     for _, option in ipairs(PADDLE_KEY_OPTIONS) do
         if option.value == key then
-            return option.note
+            return option.note and L(option.note)
         end
     end
     if NATIVE_RESERVED_KEYS[key] then
-        return "Used by the native gamepad UI; paddles cannot take it over."
+        return L("Used by the native gamepad UI; paddles cannot take it over.")
     end
     return nil
 end
@@ -351,8 +365,8 @@ local function IsPaddleKeyAllowed(key)
     end
     if NATIVE_RESERVED_KEYS[key] then
         return false, string.format(
-            "%s is used by the native gamepad UI, so it cannot drive a paddle. The controller is sending this paddle as %s: in Xbox Accessories map the paddle to a keyboard key WoW does not use (F9-F12 for example) or to Share.",
-            NATIVE_RESERVED_KEYS[key], NATIVE_RESERVED_KEYS[key]
+            L("%s is used by the native gamepad UI, so it cannot drive a paddle. The controller is sending this paddle as %s: in Xbox Accessories map the paddle to a keyboard key WoW does not use (F9-F12 for example) or to Share."),
+            L(NATIVE_RESERVED_KEYS[key]), L(NATIVE_RESERVED_KEYS[key])
         )
     end
     for _, option in ipairs(PADDLE_KEY_OPTIONS) do
@@ -361,7 +375,7 @@ local function IsPaddleKeyAllowed(key)
         end
     end
     if key:match("^PAD") then
-        return false, key .. " is a controller input the addon does not know; only Share, extra face buttons, and the native paddle keys are allowed."
+        return false, string.format(L("%s is a controller input the addon does not know; only Share, extra face buttons, and the native paddle keys are allowed."), key)
     end
 
     -- Look at the regular binding only; the addon's own override bindings
@@ -376,7 +390,7 @@ local function IsPaddleKeyAllowed(key)
             actionName = GetBindingName(action) or action
         end
         return false, string.format(
-            "Keyboard key %s is already bound to %s. Map the paddle to an unused key such as F9-F12 instead.",
+            L("Keyboard key %s is already bound to %s. Map the paddle to an unused key such as F9-F12 instead."),
             key, tostring(actionName)
         )
     end
