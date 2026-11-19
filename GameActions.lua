@@ -24,6 +24,11 @@ local TOP_BUTTONS = {
     { key = "interact", label = "Interact", index = 1, icon = "INV_Misc_Gear_01", old = "Gripbar Interact",
         tip = "The game's smart interact (X): loot, talk, gather, attack the soft target." },
     { key = "inspect", label = "Inspect", index = 2, icon = "INV_Misc_Spyglass_02", old = "Gripbar Inspect",
+        -- Drawn as the game draws it without a bumper held (with one, the
+        -- game's button shows the raid marker it would set instead).
+        live = function()
+            return UnitExists("target") and "crosshair_inspect_32" or "crosshair_unableinspect_32"
+        end,
         tip = "The game's inspect / target button (Y)." },
     { key = "back", label = "Back", index = 3, icon = "Spell_ChargeNegative", old = "Gripbar Back",
         tip = "The game's back / cancel button (B)." },
@@ -308,6 +313,9 @@ end
 -- Live icons
 ---------------------------------------------------------------------------
 local function LiveIcon(def)
+    if def.live then
+        return "atlas", def.live()
+    end
     if not def.body then
         local button = NativeButton(def)
         local region = button and IconRegionOf(button)
