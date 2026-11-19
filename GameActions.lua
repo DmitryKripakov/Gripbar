@@ -328,18 +328,30 @@ local function LiveIcon(def)
     end
     if not def.body then
         local button = NativeButton(def)
+        -- A game button that is not on screen (its bar hidden while a bumper
+        -- is held) is not kept up to date by the game, or blanked: its last
+        -- picture from while it was shown stands in.
+        if button and not button:IsVisible() and def.lastLive then
+            return def.lastLive[1], def.lastLive[2], def.lastLive[3]
+        end
         local region = button and IconRegionOf(button)
+        local kind, value, coords
         if region then
             local atlas = region.GetAtlas and region:GetAtlas()
+            local texture = not atlas and region.GetTexture and region:GetTexture()
             if atlas then
-                return "atlas", atlas
-            end
-            local texture = region.GetTexture and region:GetTexture()
-            if texture then
+                kind, value = "atlas", atlas
+            elseif texture then
                 local l, r, t, b = region:GetTexCoord()
                 -- The game's crop, part of the key so a new crop repaints.
-                return "texture", texture .. string.format("|%.4f|%.4f|%.4f|%.4f", l, r, t, b), { l, r, t, b }
+                kind, value, coords = "texture", texture .. string.format("|%.4f|%.4f|%.4f|%.4f", l, r, t, b), { l, r, t, b }
             end
+        end
+        if kind then
+            if button:IsVisible() then
+                def.lastLive = { kind, value, coords }
+            end
+            return kind, value, coords
         end
         if def.atlas then
             return "atlas", def.atlas
