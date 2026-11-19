@@ -74,6 +74,7 @@ Settings > AddOns > Gripbar, or `/grip`:
 ## Notes
 
 - Built for **WoW: Forever** (Interface 16001) and its native gamepad crossbar; it does nothing on other clients.
+- English and Russian interface, following the client's language.
 - Actions live in the game's own gamepad action storage, per character. Settings are account-wide.
 - Do not run it together with SNRN Backhand: both would bind the same keys.
 - Developer notes on the game's pitfalls: [docs/KNOWLEDGE.md](docs/KNOWLEDGE.md).

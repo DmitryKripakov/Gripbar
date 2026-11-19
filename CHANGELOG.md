@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+- **Russian interface:** settings, chat messages, `/grip` help, the game actions window, the setup guide and tooltips follow the client's language (ruRU translated; English otherwise).
+- Own X / Y / B / A is **on by default** (a face button whose cells hold nothing stays the game's).
+- An empty cell's tooltip names the game's own function there (Interact, Back, Target self, Bags...).
+- Bumper bars: the mouse reaches the bumper cells and lands on the button the game shows (drops, swaps, Shift-drags).
+- The mini cell is not drawn when it holds the same action as the button.
+- Game action pictures: Interact (it drew black), Back on a taxi, pictures of hidden buttons while a bumper is held.
+- `/grip paddle` lists the paddles again.
+
 ## 1.1.2
 
 - Debug log: errors and blocked actions kept apart from the timeline, one record per problem with a count, so nothing pushes them out; repeated lines collapsed; the last 20 sessions (`/grip debug status`).
