@@ -478,10 +478,30 @@ local function ApplySlotIcon(button)
     end
 end
 
+-- The top bar's four pictures remembered a few times a second while it shows,
+-- for the cells that show them while it is hidden (a bumper held).
+local rememberTime = 0
+local function RememberTopPictures()
+    local now = GetTime()
+    if now - rememberTime < 0.25 then
+        return
+    end
+    rememberTime = now
+    for _, def in ipairs(TOP_BUTTONS) do
+        if not def.live then
+            local button = NativeButton(def)
+            if button and button:IsVisible() then
+                LiveIcon(def)
+            end
+        end
+    end
+end
+
 local function UpdateSlotIcons()
     if not ns.ForEachButton then
         return
     end
+    RememberTopPictures()
     ns.ForEachVisualButton(function(button)
         if button.gameAction then
             ApplySlotIcon(button)
