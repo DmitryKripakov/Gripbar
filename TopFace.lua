@@ -502,15 +502,7 @@ local function CreateFace(index)
     -- In the crossbar's own layer (windows such as the map cover it), above
     -- the targeting bars' buttons there (they cover the top bar while a
     -- bumper is held), so the mouse reaches the held bumper's cell.
-    local level = topNative:GetFrameLevel()
-    for layer in pairs(LAYER_BARS) do
-        local native = NativeButton(layer, index)
-        if native then
-            level = math.max(level, native:GetFrameLevel())
-        end
-    end
     secure:SetFrameStrata(topNative:GetFrameStrata())
-    secure:SetFrameLevel(level + 10)
     secure:RegisterForClicks("AnyDown", "AnyUp")
     secure:RegisterForDrag("LeftButton")
     secure:SetAttribute("useOnKeyDown", true)
@@ -536,6 +528,15 @@ local function CreateFace(index)
                 end
             elseif enemy and (gridShown or C_ActionBar.HasAction(enemy)) then
                 mini = enemy
+            end
+        end
+        -- The same action on both cells: no mini cell (it shows again while
+        -- an action is on the cursor, to drop another one on it).
+        if mini and not mirror and top and not gridShown and C_ActionBar.HasAction(mini) then
+            local kindA, idA = GetActionInfo(mini)
+            local kindB, idB = GetActionInfo(top)
+            if kindA == kindB and idA == idB then
+                mini = nil
             end
         end
         face.miniSlot = mini
@@ -640,7 +641,32 @@ local function CreateFace(index)
     -- combat). It sits above the button's own mouse area.
     local mini = face.mini.holder
     mini:SetFrameStrata(secure:GetFrameStrata())
-    mini:SetFrameLevel(secure:GetFrameLevel() + 5)
+
+    -- Above every game button under it (the top one and the bumper bars'),
+    -- read again whenever a bumper bar shows: the game raises a bar it shows,
+    -- and the mouse would reach its button instead of ours. Out of combat
+    -- (drops happen only then).
+    function face.Raise()
+        if InCombatLockdown() then
+            return
+        end
+        local level = topNative:GetFrameLevel()
+        for layer in pairs(LAYER_BARS) do
+            local native = NativeButton(layer, index)
+            if native then
+                level = math.max(level, native:GetFrameLevel())
+            end
+        end
+        secure:SetFrameLevel(level + 10)
+        mini:SetFrameLevel(level + 15)
+    end
+    face.Raise()
+    for layer in pairs(LAYER_BARS) do
+        local _, bar = NativeButton(layer, index)
+        if bar then
+            bar:HookScript("OnShow", face.Raise)
+        end
+    end
     mini:EnableMouse(true)
     mini:RegisterForDrag("LeftButton")
     local function MiniDrop()
