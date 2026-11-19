@@ -88,7 +88,8 @@ local function EnsureDatabase()
     db.promptLabelOpacity = 0
 
     -- Combat: own actions on the top bar's X / Y / B / A (TopFace.lua).
-    Default(db, "topFace", false)
+    -- On by default: a face button whose cells hold nothing stays the game's.
+    Default(db, "topFace", true)
     -- Retired: the melee / wand swap (X takes any action of your own now).
     db.wandShoot = nil
 
