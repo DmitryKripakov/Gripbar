@@ -34,6 +34,8 @@ local FACES = {
 }
 local LAYER_BARS = { lb = "friendlyTargetingBar", rb = "hostileTargetingBar" }
 local TRIGGER_BARS = { lt = "leftBar", rt = "rightBar", ltrt = "bottomBar" }
+-- Both bumpers held: the game's shortcuts bar (no cells of ours there).
+local BOTH_BUMPERS_BAR = "shortcutsBar"
 local CELL_OFFSET = { normal = 0, enemy = 4, lb = 8, rb = 12 }
 local EDIT_MODES = { "normal", "enemy", "lb", "rb" }
 local EDIT_LABELS = { normal = "normal cells", enemy = "enemy cells", lb = "LB cells", rb = "RB cells" }
@@ -63,7 +65,7 @@ local function NativeButton(layer, index)
         local bar = layer == "top" and bars.topBar or bars[TRIGGER_BARS[layer]]
         return bar and bar.Right and bar.Right["ActionButton" .. index], bar
     end
-    local bar = bars[LAYER_BARS[layer]]
+    local bar = bars[layer == "lbrb" and BOTH_BUMPERS_BAR or LAYER_BARS[layer]]
     return bar and bar[FACES[index].field], bar
 end
 
@@ -123,20 +125,27 @@ local function LayoutDisplay(display)
     visual.border:SetShown(not pressed)
 end
 
-local function CreateDisplay(native, bar)
+local function CreateDisplay(native, bar, mini)
     -- On the bar (not the button): the targeting bars dim their disabled
     -- buttons, which must not dim ours.
     local holder = CreateFrame("Frame", nil, bar)
-    holder:SetAllPoints(native)
-    holder:SetFrameLevel(native:GetFrameLevel() + 3)
+    if mini then
+        -- The small cell in the button's lower right corner: from its centre
+        -- to a little past its corner, so it follows the button's size.
+        holder:SetPoint("TOPLEFT", native, "CENTER", 3, -3)
+        holder:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", 5, -5)
+    else
+        holder:SetAllPoints(native)
+        holder:SetFrameLevel(native:GetFrameLevel() + 3)
+    end
     holder:Hide()
-    local display = { isFace = true, native = native, holder = holder, hasAction = false, flashing = false, flashTime = 0, pushed = false }
+    local display = { isFace = true, isMini = mini, native = native, holder = holder, hasAction = false, flashing = false, flashTime = 0, pushed = false }
     local visual = ns.BuildSlotVisual(display, holder, nil)
     display.visual = visual
     visual:SetFrameLevel(holder:GetFrameLevel() + 1)
     -- The game's own slot art (its face glyph) under the icon; the shadow is
     -- the game's button's own.
-    local glyph = native.SlotArt and native.SlotArt:GetAtlas()
+    local glyph = not mini and native.SlotArt and native.SlotArt:GetAtlas()
     if glyph then
         visual.slotArt:SetAtlas(glyph)
     end
@@ -160,9 +169,11 @@ local function ShowDisplay(display, slot)
     if slot then
         display.actionSlot = slot
     end
-    display.holder:SetFrameLevel(display.native:GetFrameLevel() + 3)
     display.holder:SetShown(ours)
-    SetNativeArtAlpha(display.native, ours and 0 or 1)
+    if not display.isMini then
+        display.holder:SetFrameLevel(display.native:GetFrameLevel() + 3)
+        SetNativeArtAlpha(display.native, ours and 0 or 1)
+    end
     if ours then
         ns.UpdateButtonVisual(display)
     end
@@ -239,15 +250,25 @@ local PRECLICK = [[
         local lb, rb = self:GetAttribute("gb-lbi"), self:GetAttribute("gb-rbi")
         local lt, rt = self:GetAttribute("gb-lti"), self:GetAttribute("gb-rti")
         local ltHeld, rtHeld = pad and lt and pad[lt], pad and rt and pad[rt]
+        -- A bumper that emulates a modifier may not show in the pad state.
+        local lbm, rbm = self:GetAttribute("gb-lbmod"), self:GetAttribute("gb-rbmod")
+        local lbHeld = (pad and lb and pad[lb]) or (lbm == "CTRL" and IsControlKeyDown())
+            or (lbm == "SHIFT" and IsShiftKeyDown()) or (lbm == "ALT" and IsAltKeyDown())
+        local rbHeld = (pad and rb and pad[rb]) or (rbm == "CTRL" and IsControlKeyDown())
+            or (rbm == "SHIFT" and IsShiftKeyDown()) or (rbm == "ALT" and IsAltKeyDown())
         local layer = "top"
         if ltHeld or rtHeld then
             -- A trigger layer is the game's own bar: left, right or both.
             layer = (ltHeld and rtHeld) and "ltrt" or (ltHeld and "lt" or "rt")
             self:SetAttribute("gb-layer", layer)
             self:SetAttribute("gb-use", nil)
-        elseif pad and lb and pad[lb] then
+        elseif lbHeld and rbHeld then
+            layer = "lbrb"
+            self:SetAttribute("gb-layer", layer)
+            self:SetAttribute("gb-use", nil)
+        elseif lbHeld then
             layer = "lb"
-        elseif pad and rb and pad[rb] then
+        elseif rbHeld then
             layer = "rb"
         end
         if layer == "top" or layer == "lb" or layer == "rb" then
@@ -281,26 +302,32 @@ end
 
 -- The bumper held right now (insecure code has no GetGamePadState): "lb",
 -- "rb" or nil.
-local function HeldBumper()
-    for layer, key in pairs({ lb = "PADLSHOULDER", rb = "PADRSHOULDER" }) do
-        local ok, down = pcall(IsKeyDown, key)
-        if ok and down then
-            return layer
-        end
-        local state = ns.GetMappedState and ns.GetMappedState()
-        local raw = C_GamePad and C_GamePad.ButtonBindingToIndex and C_GamePad.ButtonBindingToIndex(key)
-        local index = state and raw and ns.GetMappedButtonArrayIndex and ns.GetMappedButtonArrayIndex(state, raw)
-        if index and state.buttons[index] == true then
-            return layer
-        end
+local function BumperDown(key)
+    local ok, down = pcall(IsKeyDown, key)
+    if ok and down then
+        return true
     end
-    return nil
+    local state = ns.GetMappedState and ns.GetMappedState()
+    local raw = C_GamePad and C_GamePad.ButtonBindingToIndex and C_GamePad.ButtonBindingToIndex(key)
+    local index = state and raw and ns.GetMappedButtonArrayIndex and ns.GetMappedButtonArrayIndex(state, raw)
+    return index ~= nil and state.buttons[index] == true
+end
+
+local function HeldBumper()
+    local lb, rb = BumperDown("PADLSHOULDER"), BumperDown("PADRSHOULDER")
+    if lb and rb then
+        return "lbrb"
+    end
+    return (lb and "lb") or (rb and "rb") or nil
 end
 
 -- The cell the mouse works on: the held bumper's, else the top cell shown.
 local function MouseSlot(face, index)
     local bumper = HeldBumper()
-    if bumper then
+    if bumper == "lbrb" then
+        -- The game's shortcuts bar: no cells of ours.
+        return nil
+    elseif bumper then
         return Cell(index, bumper)
     end
     return TopSlot(face)
@@ -313,6 +340,7 @@ local function CreateFace(index)
     end
     local face = {}
     face.top = CreateDisplay(topNative, topBar)
+    face.mini = CreateDisplay(topNative, topBar, true)
     for layer in pairs(LAYER_BARS) do
         local native, bar = NativeButton(layer, index)
         if native and bar then
@@ -330,8 +358,25 @@ local function CreateFace(index)
     secure:RegisterForDrag("LeftButton")
     secure:SetAttribute("useOnKeyDown", true)
 
+    -- The mini cell shows the other one of normal / enemy: the enemy cell
+    -- while the button shows its normal one (or the game's own), the normal
+    -- cell while it shows the enemy one. They swap when a living enemy is
+    -- targeted. With an action on the cursor the enemy cell shows even empty,
+    -- to drop it on.
     function secure:GBRoute()
-        ShowDisplay(face.top, TopSlot(face))
+        local top = TopSlot(face)
+        ShowDisplay(face.top, top)
+        local normal, enemy = Cell(index, "normal"), Cell(index, "enemy")
+        local mini
+        if GripbarDB.topFace == true and not GripbarDB.topFaceEdit then
+            if top and top == enemy then
+                mini = normal and C_ActionBar.HasAction(normal) and normal or nil
+            elseif enemy and (gridShown or C_ActionBar.HasAction(enemy)) then
+                mini = enemy
+            end
+        end
+        face.miniSlot = mini
+        ShowDisplay(face.mini, mini)
     end
 
     -- The pressed look on the cell that fired (ours only).
@@ -359,9 +404,10 @@ local function CreateFace(index)
             ns.Log("topface", string.format("%s on %s: cursor %s, cell %s, combat %s", how, FACES[index].name,
                 tostring(cursor), tostring(slot), tostring(InCombatLockdown())))
         end
-        if InCombatLockdown() or not slot or not cursor then
+        if InCombatLockdown() or not slot or not cursor or GetTime() - (face.lastDrop or 0) < 0.3 then
             return false
         end
+        face.lastDrop = GetTime()
         local ok, err = pcall(C_ActionBar.PutActionInSlot, slot)
         if not ok and ns.Log then
             ns.Log("topface", "drop failed: " .. tostring(err))
@@ -401,6 +447,51 @@ local function CreateFace(index)
         GameTooltip:Show()
     end)
     secure:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    -- The mini cell takes drops, gives up its action and has a tooltip (a
+    -- plain frame: nothing secure is needed to change an action out of
+    -- combat). It sits above the button's own mouse area.
+    local mini = face.mini.holder
+    mini:SetFrameStrata("HIGH")
+    mini:SetFrameLevel(secure:GetFrameLevel() + 5)
+    mini:EnableMouse(true)
+    mini:RegisterForDrag("LeftButton")
+    local function MiniDrop()
+        local slot = face.miniSlot
+        -- One drop per release (a release can fire both handlers; a second
+        -- put would swap the action back).
+        if InCombatLockdown() or not slot or not GetCursorInfo() or GetTime() - (face.lastDrop or 0) < 0.3 then
+            return
+        end
+        face.lastDrop = GetTime()
+        pcall(C_ActionBar.PutActionInSlot, slot)
+    end
+    mini:SetScript("OnReceiveDrag", MiniDrop)
+    mini:SetScript("OnMouseUp", MiniDrop)
+    mini:SetScript("OnDragStart", function()
+        local slot = face.miniSlot
+        if InCombatLockdown() or not slot or not C_ActionBar.HasAction(slot) then
+            return
+        end
+        if GetCVarBool("lockActionBars") and not IsModifiedClick("PICKUPACTION") then
+            return
+        end
+        PickupAction(slot)
+    end)
+    mini:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        local slot = face.miniSlot
+        if slot and C_ActionBar.HasAction(slot) then
+            GameTooltip:SetAction(slot)
+            return
+        end
+        GameTooltip:AddLine(FACES[index].name .. " with a living enemy targeted")
+        GameTooltip:AddLine("Drop an action here.", 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    mini:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
 
@@ -528,13 +619,15 @@ local function ApplyTopFace()
             secure:SetAttribute("gb-rbi", rbIndex)
             secure:SetAttribute("gb-lti", PadIndex("PADLTRIGGER"))
             secure:SetAttribute("gb-rti", PadIndex("PADRTRIGGER"))
-            for _, layer in ipairs({ "top", "lb", "rb", "lt", "rt", "ltrt" }) do
+            secure:SetAttribute("gb-lbmod", EmulatedModifier("PADLSHOULDER"))
+            secure:SetAttribute("gb-rbmod", EmulatedModifier("PADRSHOULDER"))
+            for _, layer in ipairs({ "top", "lb", "rb", "lbrb", "lt", "rt", "ltrt" }) do
                 local native = NativeButton(layer, index)
                 secure:SetAttribute("gb-native-" .. layer, native and native:GetName() or nil)
             end
             secure:SetShown(on)
             if not on then
-                for _, display in ipairs({ face.top, face.lb, face.rb }) do
+                for _, display in ipairs({ face.top, face.mini, face.lb, face.rb }) do
                     ShowDisplay(display, nil)
                 end
             end
@@ -630,10 +723,37 @@ local function SetEditMode(mode)
         or "The top bar's X / Y / B / A are back to play.")
 end
 
+-- Empties one cell: the game's own button shows there again.
+local function ClearCell(kind, faceName)
+    kind, faceName = (kind or ""):lower(), (faceName or ""):upper()
+    local index
+    for i, def in ipairs(FACES) do
+        if def.name == faceName then
+            index = i
+        end
+    end
+    if not CELL_OFFSET[kind] or not index then
+        Print("/grip face clear <normal | enemy | lb | rb> <x | y | b | a>")
+        return
+    end
+    if InCombatLockdown() then
+        Print("Change the cells out of combat.")
+        return
+    end
+    local slot = Cell(index, kind)
+    if slot and C_ActionBar.HasAction(slot) then
+        PickupAction(slot)
+        ClearCursor()
+    end
+    Print("Cleared the " .. kind .. " cell of " .. faceName .. ".")
+end
+
 local function HandleCommand(args)
     local option = (args and args[2] or ""):lower()
     if option == "edit" or option == "show" then
         SetEditMode(args[3] and args[3]:lower() or nil)
+    elseif option == "clear" then
+        ClearCell(args[3], args[4])
     else
         Toggle()
     end
