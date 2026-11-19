@@ -50,7 +50,7 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
 - The crossbar's button shape and size come from the bar's style, not the template: `buttonIndexOnActionBar` 1-4 squares, 5-8 circles; `SetShapeToCircle` after `UpdateButtonArt`; sizes 30 / 38 (circle), 32 / 40 (square); pushed = 4 smaller, 2 lower.
 - The face glyph beside a button (`ButtonIcon`) belongs to the bar template, not the button.
 - **Atlases can be sprite sheets:** the inspect crosshair needs `SetSpriteSheetCell(1, 1, 1)` after `SetAtlas`. Never `SetTexCoord(0, 1, 0, 1)` after an atlas.
-- Textures keep the game's crop (`GetTexCoord`): raid markers are cells of one sheet.
+- Textures keep the game's crop: `GetTexCoord()` returns **eight** numbers (four corners), pass them all back with `SetTexCoord(unpack(c))`; taking four as left / right / top / bottom gives a zero-width picture. Raid markers are cells of one sheet. The game gives some pictures by file ID (a number): never turn it into a string path.
 - Game pictures change with state: with a bumper held the inspect button shows a raid marker, offset 6 inside. Show the state the action will actually use.
 - **Masks:** an atlas mask repeats its edge pixels outward; a circle touches its square at four points, so a picture larger than the mask shows four strips past the ring. Use `TempPortraitAlphaMask` with `CLAMPTOBLACKADDITIVE`.
 - The game's buttons hold pictures its bars put there (targeting overlay with ticks, portraits, markers). To cover a game button, hide **all** its textures (`GetRegions`) except the shadows, and give each back its own saved alpha (some are transparent on purpose).

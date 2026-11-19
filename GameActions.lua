@@ -348,9 +348,14 @@ local function LiveIcon(def)
             if atlas then
                 kind, value = "atlas", atlas
             elseif texture then
-                local l, r, t, b = region:GetTexCoord()
-                -- The game's crop, part of the key so a new crop repaints.
-                kind, value, coords = "texture", texture .. string.format("|%.4f|%.4f|%.4f|%.4f", l, r, t, b), { l, r, t, b }
+                -- The game's crop: GetTexCoord gives the four corners (eight
+                -- numbers), part of the key so a new crop repaints.
+                coords = { region:GetTexCoord() }
+                local key = {}
+                for i, v in ipairs(coords) do
+                    key[i] = string.format("%.4f", v)
+                end
+                kind, value = "texture", texture .. "|" .. table.concat(key, "|")
             end
         end
         if kind then
@@ -392,7 +397,9 @@ local function SetIcon(texture, kind, value, coords)
         -- a string of digits is no texture path.
         local file = value:gsub("|.*$", "")
         texture:SetTexture(tonumber(file) or file)
-        if coords then
+        if coords and #coords == 8 then
+            texture:SetTexCoord(unpack(coords))
+        elseif coords and #coords == 4 then
             texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
         else
             texture:SetTexCoord(0, 1, 0, 1)
