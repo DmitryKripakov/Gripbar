@@ -90,7 +90,7 @@ local WINDOWS = {
         tip = "Opens or closes the quest log." },
     { key = "character", label = "Character", body = "/run ToggleCharacter(\"PaperDollFrame\")", icon = "INV_Chest_Cloth_17",
         tip = "Opens or closes the character window." },
-    { key = "spellbook", label = "Spellbook", body = "/run ToggleSpellBook(BOOKTYPE_SPELL or \"spell\")", icon = "INV_Misc_Book_09",
+    { key = "spellbook", label = "Spellbook", body = "/run if PlayerSpellsUtil then PlayerSpellsUtil.ToggleSpellBookFrame() else ToggleSpellBook(BOOKTYPE_SPELL) end", icon = "INV_Misc_Book_09",
         tip = "Opens or closes the spellbook." },
     { key = "screenshot", label = "Screenshot", body = "/screenshot", icon = "INV_Misc_Spyglass_02",
         tip = "Takes a screenshot." },
@@ -626,6 +626,16 @@ events:SetScript("OnEvent", function()
         local old = GetMacroIndexByName(def.old)
         if (index and index > 0) or (old and old > 0) then
             EnsureMacro(def)
+        end
+    end
+    -- The window and command macros made earlier: their body (the first
+    -- spellbook macro called a function Forever does not have).
+    for _, list in ipairs({ WINDOWS, COMMANDS }) do
+        for _, def in ipairs(list) do
+            local index = GetMacroIndexByName(MacroName(def))
+            if index and index > 0 then
+                EnsureMacro(def)
+            end
         end
     end
     -- The bumper shortcuts' macros made earlier: their icon and button name.
