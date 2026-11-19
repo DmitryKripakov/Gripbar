@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Safety net for own X / Y / B / A: at the start of each fight the face buttons are checked and bound again if the game took them; a warning in chat if that fails.
+- A cell that changes without you (the game placing a newly learned spell, a talent reset, another addon) is reported in chat.
+- A self-test after login reports in chat when a game update changed the crossbar parts Gripbar relies on.
+- Debug log: each time a face button is won back from the game, presses on the bumper layers, bumper bars shown / hidden and target changes around them.
+
 ## 1.2.1
 
 - Own X / Y / B / A in combat: a loot, group loot (Need / Greed) or bags window opening mid-fight no longer hands the face buttons back to the game for the rest of the fight (X hitting with the weapon instead of the spell). The keys are won back from secure code on the next press.

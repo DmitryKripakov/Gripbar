@@ -63,6 +63,8 @@ local lastError
 local loggedStatus
 local UpdateMirror -- below; the displays use it
 local WrapGameButtons
+local userTouch = 0   -- GetTime() of the last change to a cell made with the mouse or a command
+local lastBarHide = 0 -- GetTime() a bumper bar last hid (target changes logged around it)
 local AnchorMini
 
 local function Bars()
@@ -400,6 +402,11 @@ local RECLAIM = [[
     if not i or not control:GetAttribute("gb-on") then
         return
     end
+    -- A press of ours handed on to the game's button (our cell is empty).
+    if control:GetAttribute("gb-relay") == name then
+        control:SetAttribute("gb-relay", nil)
+        return
+    end
     local face = control:GetFrameRef("face" .. i)
     if not (face and face:GetAttribute("gb-bindable")) then
         return
@@ -408,7 +415,9 @@ local RECLAIM = [[
     if down then
         local layer = control:GetAttribute("layer-of-" .. name)
         local slot = face:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
-        if slot and HasAction(slot) then
+        local ours = slot and HasAction(slot) and true or false
+        control:CallMethod("GBReclaimed", i, layer, ours)
+        if ours then
             control:SetAttribute("gb-drop-" .. i, true)
             return false
         end
@@ -493,6 +502,7 @@ local PRECLICK = [[
     if not native then
         return false
     end
+    control:SetAttribute("gb-relay", native)
     self:SetAttribute("type", "macro")
     self:SetAttribute("useOnKeyDown", down and true or false)
     self:SetAttribute("macrotext", "/click " .. native .. " LeftButton" .. (down and " true" or ""))
@@ -610,6 +620,10 @@ local function CreateFace(index)
             display = nil
         end
         if down then
+            if layer ~= "top" and ns.Log then
+                ns.Log("topface", string.format("press %s on %s: %s", FACES[index].name, layer,
+                    self:GetAttribute("gb-use") and ("cell " .. tostring(self:GetAttribute("gb-use"))) or "the game's"))
+            end
             SetDisplayPushed(display, self:GetAttribute("gb-use") ~= nil, layer == "top" and face.mini or nil)
         else
             SetDisplayPushed(face.top, false, face.mini)
@@ -633,6 +647,7 @@ local function CreateFace(index)
             return false
         end
         face.lastDrop = GetTime()
+        userTouch = GetTime()
         local ok, err = pcall(C_ActionBar.PutActionInSlot, slot)
         if not ok and ns.Log then
             ns.Log("topface", "drop failed: " .. tostring(err))
@@ -661,6 +676,7 @@ local function CreateFace(index)
         if GetCVarBool("lockActionBars") and not IsModifiedClick("PICKUPACTION") then
             return
         end
+        userTouch = GetTime()
         PickupAction(slot)
     end)
     -- Mouse over: the native hover ring on the cell shown (ours or the
@@ -754,6 +770,19 @@ local function CreateFace(index)
         if bar then
             bar:HookScript("OnShow", face.Raise)
             bar:HookScript("OnHide", face.Raise)
+            if index == 1 then
+                bar:HookScript("OnShow", function()
+                    if ns.Log then
+                        ns.Log("topface", "bar " .. layer .. " shown")
+                    end
+                end)
+                bar:HookScript("OnHide", function()
+                    lastBarHide = GetTime()
+                    if ns.Log then
+                        ns.Log("topface", "bar " .. layer .. " hidden")
+                    end
+                end)
+            end
         end
     end
     mini:EnableMouse(true)
@@ -766,6 +795,7 @@ local function CreateFace(index)
             return
         end
         face.lastDrop = GetTime()
+        userTouch = GetTime()
         pcall(C_ActionBar.PutActionInSlot, slot)
     end
     mini:SetScript("OnReceiveDrag", MiniDrop)
@@ -778,6 +808,7 @@ local function CreateFace(index)
         if GetCVarBool("lockActionBars") and not IsModifiedClick("PICKUPACTION") then
             return
         end
+        userTouch = GetTime()
         PickupAction(slot)
     end)
     mini:SetScript("OnEnter", function(self)
@@ -1128,6 +1159,7 @@ local function ClearCell(kind, faceName)
     end
     local slot = Cell(index, kind)
     if slot and C_ActionBar.HasAction(slot) then
+        userTouch = GetTime()
         PickupAction(slot)
         ClearCursor()
     end
@@ -1143,6 +1175,191 @@ local function HandleCommand(args)
     else
         Toggle()
     end
+end
+
+---------------------------------------------------------------------------
+-- Safety net: problems that would otherwise only show as a wrong press at
+-- the worst moment are logged (/grip debug) and, when they matter, told in
+-- chat.
+---------------------------------------------------------------------------
+
+local function TopSetName()
+    local manager = GamepadSharedUtility and GamepadSharedUtility.InputBindingManager
+    local ok, name = pcall(function()
+        return manager:PeekName()
+    end)
+    return ok and tostring(name) or "?"
+end
+
+-- The secure side won a face key back from the game's binding.
+function header:GBReclaimed(index, layer, dropped)
+    local def = FACES[tonumber(index) or 0]
+    if ns.Log then
+        ns.Log("topface", string.format("won %s back (%s layer) from the game's binding%s; top set %s, combat %s",
+            def and def.name or tostring(index), tostring(layer), dropped and ", that press dropped" or "",
+            TopSetName(), tostring(InCombatLockdown())))
+    end
+end
+
+-- Whether each face key that should be ours is: at combat start (in combat
+-- nothing can rebind it before the next press reaches the reclaim wrap) and
+-- in the login self-test. A key held by a game window open now is expected.
+local lastKeyWarning = 0
+local function CheckFaceKeys(when, retried)
+    if not Enabled() then
+        return
+    end
+    local lost, held = {}, {}
+    for index, def in ipairs(FACES) do
+        local face = faces[index]
+        if face and face.secure:GetAttribute("gb-bindable") then
+            local expected = "CLICK " .. face.secure:GetName() .. ":LeftButton"
+            local action = GetBindingAction(def.key, true) or ""
+            if action ~= expected then
+                local takenBy = KeyTakenBy(def.key)
+                local line = string.format("%s -> %s", def.name, action ~= "" and action or "none")
+                if takenBy then
+                    held[#held + 1] = line .. " (" .. takenBy .. ")"
+                else
+                    lost[#lost + 1] = line
+                end
+            end
+        end
+    end
+    if #held > 0 and ns.Log then
+        ns.Log("topface", when .. ": held by a game window: " .. table.concat(held, ", "))
+    end
+    -- At combat start the lockdown has not begun yet: bind them again now.
+    if #lost > 0 and not retried and not InCombatLockdown() then
+        if ns.Log then
+            ns.Log("topface", when .. ": face keys not ours (" .. table.concat(lost, ", ") .. "); bound again")
+        end
+        ApplyTopFace()
+        return CheckFaceKeys(when, true)
+    end
+    if #lost > 0 then
+        if ns.Log then
+            ns.Log("warning", "face keys not ours at " .. when .. ": " .. table.concat(lost, ", ") .. "; top set " .. TopSetName())
+        end
+        if GetTime() - lastKeyWarning > 60 then
+            lastKeyWarning = GetTime()
+            local names = {}
+            for _, line in ipairs(lost) do
+                names[#names + 1] = line:match("^(%S+)")
+            end
+            Print(string.format(L("%s: the game holds their binding in this fight; the next press should win it back. /grip debug logs the details."),
+                table.concat(names, ", ")))
+        end
+    end
+end
+
+-- The cells' contents, to tell a change nobody made with the mouse (the game
+-- placing a newly learned spell, a talent reset taking one away, another
+-- addon writing to the slot).
+local cellContents
+local CELL_NAMES = { normal = "The normal cell", enemy = "The enemy cell", lb = "The LB cell", rb = "The RB cell", lbrb = "The LB + RB cell" }
+
+local function CellContent(slot)
+    if not C_ActionBar.HasAction(slot) then
+        return "", L("(empty)")
+    end
+    local kind, id = GetActionInfo(slot)
+    local name
+    if kind == "spell" then
+        name = (C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)) or (GetSpellInfo and GetSpellInfo(id))
+    elseif kind == "macro" then
+        name = GetMacroInfo(id)
+    elseif kind == "item" then
+        name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or (GetItemInfo and GetItemInfo(id))
+    end
+    -- By name: a macro's index shifts when macros are added, a spell's ID
+    -- when a new rank replaces it on the bars.
+    return tostring(kind) .. ":" .. tostring(name or id), name or (tostring(kind) .. " " .. tostring(id))
+end
+
+local function SnapshotCells()
+    if not ns.topFaceSlots then
+        return
+    end
+    cellContents = {}
+    for _, slot in pairs(ns.topFaceSlots) do
+        cellContents[slot] = { CellContent(slot) }
+    end
+end
+
+local function WatchCells(changed)
+    if not cellContents then
+        return
+    end
+    local byUser = GetTime() - userTouch < 2 or GetCursorInfo() ~= nil
+    for index, def in ipairs(FACES) do
+        for kind in pairs(CELL_OFFSET) do
+            local slot = Cell(index, kind)
+            if slot and (changed == 0 or changed == slot) then
+                local key, name = CellContent(slot)
+                local before = cellContents[slot]
+                if before and before[1] ~= key and not byUser then
+                    if ns.Log then
+                        ns.Log("warning", string.format("%s cell of %s (slot %d) changed by itself: %s -> %s",
+                            kind, def.name, slot, tostring(before[2]), tostring(name)))
+                    end
+                    if GripbarDB and GripbarDB.topFace == true then
+                        Print(string.format(L("%s of %s changed by itself: %s -> %s."), L(CELL_NAMES[kind]), def.name,
+                            tostring(before[2]), tostring(name)))
+                    end
+                end
+                cellContents[slot] = { key, name }
+            end
+        end
+    end
+end
+
+-- After login: are the game's parts Gripbar leans on still there (a client
+-- patch may rename them), and are the face keys ours?
+local function SelfTest()
+    if not Enabled() then
+        return
+    end
+    local missing = {}
+    local manager = GamepadSharedUtility and GamepadSharedUtility.InputBindingManager
+    if not manager then
+        missing[#missing + 1] = "InputBindingManager"
+    else
+        if type(manager.bindingSetStack) ~= "table" then
+            missing[#missing + 1] = "bindingSetStack"
+        end
+        for _, method in ipairs({ "AddBindingSet", "RemoveSet", "IsOnlyCoreBindingSetActive", "PeekName" }) do
+            if type(manager[method]) ~= "function" then
+                missing[#missing + 1] = method
+            end
+        end
+    end
+    if not (GamepadMainActionBarFrameMixin and type(GamepadMainActionBarFrameMixin.PressActionButton) == "function") then
+        missing[#missing + 1] = "PressActionButton"
+    end
+    for _, layer in ipairs({ "top", "lb", "rb", "lbrb" }) do
+        for index, def in ipairs(FACES) do
+            local native = NativeButton(layer, index)
+            if not (native and native:GetName()) then
+                missing[#missing + 1] = layer .. " " .. def.name
+            end
+        end
+    end
+    for index, def in ipairs(FACES) do
+        if not faces[index] then
+            missing[#missing + 1] = "own " .. def.name
+        end
+    end
+    if #missing > 0 then
+        if ns.Log then
+            ns.Log("warning", "self-test: missing " .. table.concat(missing, ", "))
+        end
+        Print(string.format(L("Self-test: the game's crossbar is not what Gripbar expects (%s). Own X / Y / B / A may not hold the face buttons; please report it with /grip debug."),
+            table.concat(missing, ", ")))
+    elseif ns.Log then
+        ns.Log("topface", "self-test passed")
+    end
+    CheckFaceKeys("login")
 end
 
 -- The game binds its face keys again when a menu closes (a binding set
@@ -1184,6 +1401,8 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
+events:RegisterEvent("PLAYER_REGEN_DISABLED")
+events:RegisterEvent("PLAYER_TARGET_CHANGED")
 events:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 events:RegisterEvent("ACTIONBAR_SHOWGRID")
 events:RegisterEvent("ACTIONBAR_HIDEGRID")
@@ -1195,8 +1414,25 @@ events:SetScript("OnEvent", function(_, event, slot)
             GripbarDB.topFaceEdit = nil
         end
         return
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        CheckFaceKeys("combat start")
+        return
+    elseif event == "PLAYER_TARGET_CHANGED" then
+        -- Around the bumpers (the game's own targeting runs while one is held).
+        if ns.IsDebugLogOn and ns.IsDebugLogOn() and (HeldBumper() or GetTime() - lastBarHide < 1.5) then
+            ns.Log("topface", "target -> " .. tostring(UnitName("target") or "none"))
+        end
+        return
     elseif event == "PLAYER_ENTERING_WORLD" and not ns.topFaceSlots and ns.ReserveTopFaceSlots then
         ns.ReserveTopFaceSlots()
+        -- The cells' contents settle a moment after login.
+        C_Timer.After(5, function()
+            SnapshotCells()
+            local ok, err = pcall(SelfTest)
+            if not ok and ns.Log then
+                ns.Log("error", "self-test: " .. tostring(err))
+            end
+        end)
     elseif event == "PLAYER_REGEN_ENABLED" and not pending then
         for _, face in pairs(faces) do
             if face.raisePending then
@@ -1209,6 +1445,7 @@ events:SetScript("OnEvent", function(_, event, slot)
         if slot ~= 0 and not (slots and tContains(slots, slot)) then
             return
         end
+        WatchCells(slot)
     elseif event == "ACTIONBAR_SHOWGRID" then
         gridShown = true
     elseif event == "ACTIONBAR_HIDEGRID" then

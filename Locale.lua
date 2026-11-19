@@ -224,6 +224,15 @@ if locale == "ruRU" then
         ["The top bar's X / Y / B / A are back to play."] = "X / Y / B / A верхней панели снова работают как в игре.",
         ["Change the cells out of combat."] = "Менять ячейки можно только вне боя.",
         ["Cleared the %s cell of %s."] = "Ячейка %s кнопки %s очищена.",
+        ["%s: the game holds their binding in this fight; the next press should win it back. /grip debug logs the details."] = "%s: в этом бою привязку держит игра; следующее нажатие должно её вернуть. Подробности пишет журнал /grip debug.",
+        ["%s of %s changed by itself: %s -> %s."] = "%s кнопки %s изменилась сама: %s → %s.",
+        ["The normal cell"] = "Обычная ячейка",
+        ["The enemy cell"] = "Ячейка «при враге»",
+        ["The LB cell"] = "Ячейка LB",
+        ["The RB cell"] = "Ячейка RB",
+        ["The LB + RB cell"] = "Ячейка LB + RB",
+        ["(empty)"] = "(пусто)",
+        ["Self-test: the game's crossbar is not what Gripbar expects (%s). Own X / Y / B / A may not hold the face buttons; please report it with /grip debug."] = "Самопроверка: крестовина игры не такая, как ожидает Gripbar (%s). Свои X / Y / B / A могут не удерживать кнопки; сообщите об этом, приложив журнал /grip debug.",
 
         -- GameActions.lua: the picker (macro names stay English)
         ["Bags button"] = "Кнопка сумок",

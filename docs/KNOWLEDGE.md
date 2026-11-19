@@ -36,6 +36,15 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
 - The game's own windows push binding sets that take the face keys (`LootFrameFooter`, `GroupLootFrameFooter` for need / greed rolls, `ContainerFrameCombinedBagsFooter` for bags, with `SmartNavigation*` / `FrameControlsManager*`), also in combat; when they close the game binds its core face keys again and they win over ours. Release a key only while a set on the stack binds it (`set:GetBinding(key)`), and win it back from secure code: pad presses reach the crossbar through `PressActionButton` -> `actionButton:Click()`, so a `WrapScript` on the game's face buttons' OnClick sees every press that went the game's way and can `control:SetBindingClick` ours back (and drop that press).
 - Holding both bumpers shows the shortcuts bar, and the game keeps it until **both** are released. Decide the layer from the bar the game shows (`bar:IsVisible()`), not from the buttons held.
 - Releasing a bumper without using it targets the next enemy / friend (`GamepadTargetLogic`) unless something consumed it (a target change does).
+- The game's bumper-bar buttons consume it in their OnClick (`GamepadTargetLogic:ConsumeModifier()`); our cells cannot (addon code writing `wasModifierUsed` would taint `GamepadTargetLogic`, whose `EndTargeting` / `BeginTargeting` run the game's targeting). While a bumper is held the game's own targeting is on (`C_GamepadTargeting.Enable()`; `Disable()` on release reports whether it picked a target). Watch a bumper cell that does not change the target, and Back on a bumper cell (open: the target comes back).
+- Other game windows that take face keys (from the source): spell flyouts (`SpellFlyoutFrameFooter`: A cast, X bind), party / raid targeting (`SmartNavigation`), raid marker D-pad, ready check, role poll, stack split, equipment flyout, static popups.
+
+## Safety net (TopFace.lua)
+
+- `PLAYER_REGEN_DISABLED` fires before the lockdown: check `GetBindingAction(key, true)` is our `CLICK GripbarFaceX:LeftButton` and bind again right there; tell the player only if that fails.
+- The reclaim wrap reports each win back through `control:CallMethod("GBReclaimed", ...)` on our own header (an insecure method called from secure code is fine; it only logs). Our own relays to the game's buttons are marked (`gb-relay` = the button's name) so they are not counted.
+- Cell contents are watched by kind + **name** (a macro's index shifts when macros are added; a spell's ID changes with a new rank). A change within 2 s of a mouse drop / pickup / `/grip face clear`, or with something on the cursor, is the player's; any other is logged and told in chat (a newly learned spell placed by the game, a talent reset, another addon).
+- 5 s after the first `PLAYER_ENTERING_WORLD`: a self-test of the game parts we lean on (`InputBindingManager` and its stack, `PressActionButton`, the face buttons of every layer); a patch that renames them shows in chat instead of failing silently.
 
 ## Action slots
 
