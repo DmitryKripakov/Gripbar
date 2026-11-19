@@ -434,9 +434,18 @@ local function CreateFace(index)
     local secure = CreateFrame("Button", "GripbarFace" .. FACES[index].name, UIParent, "SecureActionButtonTemplate")
     face.secure = secure
     secure:SetAllPoints(topNative)
-    -- Above the targeting bars too (they cover the top bar while a bumper is
-    -- held), so the mouse reaches the held bumper's cell.
-    secure:SetFrameStrata("HIGH")
+    -- In the crossbar's own layer (windows such as the map cover it), above
+    -- the targeting bars' buttons there (they cover the top bar while a
+    -- bumper is held), so the mouse reaches the held bumper's cell.
+    local level = topNative:GetFrameLevel()
+    for layer in pairs(LAYER_BARS) do
+        local native = NativeButton(layer, index)
+        if native then
+            level = math.max(level, native:GetFrameLevel())
+        end
+    end
+    secure:SetFrameStrata(topNative:GetFrameStrata())
+    secure:SetFrameLevel(level + 10)
     secure:RegisterForClicks("AnyDown", "AnyUp")
     secure:RegisterForDrag("LeftButton")
     secure:SetAttribute("useOnKeyDown", true)
@@ -565,7 +574,7 @@ local function CreateFace(index)
     -- plain frame: nothing secure is needed to change an action out of
     -- combat). It sits above the button's own mouse area.
     local mini = face.mini.holder
-    mini:SetFrameStrata("HIGH")
+    mini:SetFrameStrata(secure:GetFrameStrata())
     mini:SetFrameLevel(secure:GetFrameLevel() + 5)
     mini:EnableMouse(true)
     mini:RegisterForDrag("LeftButton")
