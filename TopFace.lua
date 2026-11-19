@@ -80,18 +80,55 @@ local function PadIndex(binding)
     return index and index + 1 or nil
 end
 
+local SHADOW_KEYS = { "CircleShadow", "SquareShadow", "CircleShadowFocus", "SquareShadowFocus" }
+
+-- Every picture of the game's button goes transparent under ours (its own
+-- art, and whatever its bar put on it: the targeting bars' overlays, marker
+-- and portrait pictures); its shadows stay (they follow its own states).
+-- The game's own transparency of each picture we hid (some are see-through
+-- on purpose, faded in by its animations), given back when ours goes. Kept
+-- here, not on the game's button.
+local savedAlpha = setmetatable({}, { __mode = "k" })
+
 local function SetNativeArtAlpha(native, alpha)
     if not native then
         return
     end
-    local textures = { native:GetNormalTexture(), native:GetPushedTexture() }
-    for _, key in ipairs(NATIVE_ART) do
-        textures[#textures + 1] = native[key]
-    end
-    for _, texture in pairs(textures) do
-        if texture and texture.SetAlpha then
-            texture:SetAlpha(alpha)
+    local keep = {}
+    for _, key in ipairs(SHADOW_KEYS) do
+        if native[key] then
+            keep[native[key]] = true
         end
+    end
+    local textures = {}
+    for _, region in ipairs({ native:GetRegions() }) do
+        if region:IsObjectType("Texture") and not keep[region] then
+            textures[region] = true
+        end
+    end
+    for _, key in ipairs(NATIVE_ART) do
+        local texture = native[key]
+        if texture and texture.SetAlpha and not keep[texture] then
+            textures[texture] = true
+        end
+    end
+    local saved = savedAlpha[native]
+    if alpha == 0 then
+        if not saved then
+            saved = {}
+            for texture in pairs(textures) do
+                saved[texture] = texture:GetAlpha()
+            end
+            savedAlpha[native] = saved
+        end
+        for texture in pairs(textures) do
+            texture:SetAlpha(0)
+        end
+    elseif saved then
+        for texture, value in pairs(saved) do
+            texture:SetAlpha(value)
+        end
+        savedAlpha[native] = nil
     end
 end
 
