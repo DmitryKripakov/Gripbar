@@ -23,6 +23,7 @@
 local _, ns = ...
 
 local Print = ns.Print
+local L = ns.L
 
 -- X, Y, B, A: the game's face group order (Right.ActionButton1..4), keys and
 -- the targeting bars' fields for the same buttons.
@@ -37,6 +38,15 @@ local FACES = {
 local LAYER_BARS = { lb = "friendlyTargetingBar", rb = "hostileTargetingBar", lbrb = "shortcutsBar" }
 local TRIGGER_BARS = { lt = "leftBar", rt = "rightBar", ltrt = "bottomBar" }
 local CELL_OFFSET = { normal = 0, enemy = 4, lb = 8, rb = 12, lbrb = 16 }
+-- What the game's own button does on each layer, in X, Y, B, A order
+-- (Blizzard_GamepadActionBars: MainActionBarFrame and TargetActionBars), for
+-- the tooltip of a cell that holds nothing of ours.
+local NATIVE_NAMES = {
+    top = { "Interact", "Inspect", "Back", "Jump" },
+    lb = { "Target pet", "Raid target marker", "Target of target", "Target self" },
+    rb = { "Shoot", "Raid target marker", "Assist (target of target)", "Target last enemy" },
+    lbrb = { "Draw / sheathe weapons", "Buffs", "Bags", "Target focus" },
+}
 local EDIT_MODES = { "normal", "enemy", "lb", "rb", "lbrb" }
 local EDIT_LABELS = { normal = "normal cells", enemy = "enemy cells", lb = "LB cells", rb = "RB cells", lbrb = "LB + RB cells" }
 local PRESSED_OFFSET = 4 -- the game's pushed style: 4 smaller, 2 lower
@@ -627,8 +637,9 @@ local function CreateFace(index)
             GameTooltip:SetAction(slot)
             return
         end
-        GameTooltip:AddLine("Top bar " .. FACES[index].name)
-        GameTooltip:AddLine("Drop an action here (Gripbar: own X / Y / B / A).", 1, 1, 1, true)
+        -- The game's own function there, by name.
+        local names = NATIVE_NAMES[HeldBumper() or "top"]
+        GameTooltip:AddLine(L(names and names[index] or FACES[index].name), 1, 1, 1)
         GameTooltip:Show()
     end)
     secure:SetScript("OnLeave", function()
@@ -730,8 +741,14 @@ local function CreateFace(index)
             GameTooltip:SetAction(slot)
             return
         end
-        GameTooltip:AddLine(FACES[index].name .. " with a living enemy targeted")
-        GameTooltip:AddLine("Drop an action here.", 1, 1, 1, true)
+        -- The game's own function (shown while an enemy is targeted), or the
+        -- empty enemy cell.
+        if face.mini.mirror then
+            GameTooltip:AddLine(L(NATIVE_NAMES.top[index]), 1, 1, 1)
+        else
+            GameTooltip:AddLine(L("With a living enemy targeted"), 1, 1, 1)
+            GameTooltip:AddLine(L("Drop an action here."), nil, nil, nil, true)
+        end
         GameTooltip:Show()
     end)
     mini:SetScript("OnLeave", function()

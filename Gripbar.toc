@@ -13,6 +13,7 @@
 ## SavedVariablesPerCharacter: GripbarCharDB
 
 Core.lua
+Locale.lua
 Debug.lua
 Database.lua
 ActionStorage.lua
