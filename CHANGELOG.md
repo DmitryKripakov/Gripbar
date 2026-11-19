@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- The mini cells' round cut, dark disc and cooldown swipe sit inside the ring in proportion to the cell size (no see-through gap between the ring and the icon).
+
 ## 1.1.0
 
 - **Own X / Y / B / A on the top bar.** The top bar's face buttons and the bumper bars take actions of your own, drawn like the game's buttons. Five cells per face button: normal; living enemy targeted (shown small in the button's corner and swapped in when an enemy is targeted); LB held; RB held; LB + RB held. Empty cells and LT / RT + a face button stay the game's. Set them up without a target or a bumper with **Cells shown** (`/grip face edit`), empty one with `/grip face clear`.
