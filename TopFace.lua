@@ -50,6 +50,7 @@ local pending = false
 local gridShown = false
 local lastError
 local loggedStatus
+local UpdateMirror -- below; the displays use it
 
 local function Bars()
     local main = _G.GamepadMainActionBarFrame
@@ -155,17 +156,86 @@ local function CreateDisplay(native, bar, mini)
     holder:SetScript("OnSizeChanged", function()
         LayoutDisplay(display)
     end)
+    display.UpdateMirror = UpdateMirror
+    -- The game's picture changes on its own (the smart interact): followed
+    -- a few times a second while shown.
+    local elapsedSince = 0
+    holder:SetScript("OnUpdate", function(_, elapsed)
+        if not display.mirror then
+            return
+        end
+        elapsedSince = elapsedSince + elapsed
+        if elapsedSince > 0.2 then
+            elapsedSince = 0
+            UpdateMirror(display)
+        end
+    end)
     LayoutDisplay(display)
     ns.RegisterExtraDisplay(display)
     return display
 end
 
 -- Shows a display with a slot (ours), or hides it (the game's button shows).
-local function ShowDisplay(display, slot)
+-- A mini cell that shows the game's own button's picture (its fixed
+-- function, live: the interact hand, gear, pickaxe...) and no action.
+local MIRROR_KEYS = { "SpecialActionIcon", "icon" }
+
+function UpdateMirror(display)
+    local native = display.mirror
+    if not native then
+        return false
+    end
+    local visual = display.visual
+    local region
+    for _, key in ipairs(MIRROR_KEYS) do
+        local candidate = native[key]
+        if candidate and candidate.IsShown and candidate:IsShown() then
+            region = candidate
+            break
+        end
+    end
+    local atlas = region and region.GetAtlas and region:GetAtlas()
+    local texture = region and not atlas and region:GetTexture()
+    if atlas ~= display.mirrorAtlas or texture ~= display.mirrorTexture then
+        display.mirrorAtlas, display.mirrorTexture = atlas, texture
+        if atlas then
+            visual.icon:SetAtlas(atlas)
+        elseif texture then
+            visual.icon:SetTexture(texture)
+            visual.icon:SetTexCoord(region:GetTexCoord())
+        end
+    end
+    visual.icon:SetShown(atlas ~= nil or texture ~= nil)
+    visual.icon:SetVertexColor(1, 1, 1)
+    visual.count:SetText("")
+    for _, cooldown in ipairs({ visual.cooldown, visual.chargeCooldown, visual.lossOfControlCooldown }) do
+        if cooldown and cooldown.Clear then
+            cooldown:Clear()
+        end
+    end
+    visual.rangeIndicator:Hide()
+    visual.checked:Hide()
+    visual.equippedBorder:Hide()
+    visual.flash:Hide()
+    if visual.spellAlert then
+        visual.spellAlert:Hide()
+    end
+    display.hasAction = false
+    display.flashing = false
+    display.spellAlertShown = false
+    return true
+end
+
+local function ShowDisplay(display, slot, mirror)
     if not display then
         return
     end
-    local ours = slot ~= nil
+    display.mirror = mirror
+    display.mirrorAtlas, display.mirrorTexture = nil, nil
+    if not mirror then
+        display.visual.icon:SetTexCoord(0, 1, 0, 1)
+    end
+    local ours = slot ~= nil or mirror ~= nil
     if slot then
         display.actionSlot = slot
     end
@@ -362,16 +432,22 @@ local function CreateFace(index)
         local top = TopSlot(face)
         ShowDisplay(face.top, top)
         local normal, enemy = Cell(index, "normal"), Cell(index, "enemy")
-        local mini
+        local mini, mirror
         if GripbarDB.topFace == true and not GripbarDB.topFaceEdit then
             if top and top == enemy then
-                mini = normal and C_ActionBar.HasAction(normal) and normal or nil
+                -- What works without a target: the normal cell, or the
+                -- game's own function when that is empty (drops still go to
+                -- the normal cell).
+                mini = normal
+                if not (normal and C_ActionBar.HasAction(normal)) then
+                    mirror = face.top.native
+                end
             elseif enemy and (gridShown or C_ActionBar.HasAction(enemy)) then
                 mini = enemy
             end
         end
         face.miniSlot = mini
-        ShowDisplay(face.mini, mini)
+        ShowDisplay(face.mini, not mirror and mini or nil, mirror)
     end
 
     -- The pressed look on the cell that fired (ours only).

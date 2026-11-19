@@ -877,6 +877,11 @@ local function UpdateNavigationVisual(button, navIcon)
 end
 
 local function UpdateButtonVisual(button)
+    -- A display that shows a game button's own picture instead of an action
+    -- (the top bar's mini cell showing the game's fixed function).
+    if button.UpdateMirror and button:UpdateMirror() then
+        return
+    end
     local navIcon = GetPaddleBehaviorIcon(button.paddleIndex)
     if navIcon then
         UpdateNavigationVisual(button, navIcon)
