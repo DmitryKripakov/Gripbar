@@ -912,6 +912,11 @@ local function UpdateButtonVisual(button)
     button.gameAction = hasAction and button.actionSlot and ns.GameActionForSlot
         and ns.GameActionForSlot(button.actionSlot) or nil
     button.gameIconKind, button.gameIconValue = nil, nil
+    -- A game action's picture is drawn as the game draws it; anything else
+    -- as a plain slot.
+    if ns.ResetSpecialIcon then
+        ns.ResetSpecialIcon(visual)
+    end
     if icon then
         visual.icon:SetTexture(icon)
         visual.icon:Show()

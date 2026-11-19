@@ -220,6 +220,9 @@ function UpdateMirror(display)
     end
     visual.icon:SetShown(atlas ~= nil or texture ~= nil)
     visual.icon:SetVertexColor(1, 1, 1)
+    if ns.StyleSpecialIcon then
+        ns.StyleSpecialIcon(visual, native, region)
+    end
     visual.count:SetText("")
     for _, cooldown in ipairs({ visual.cooldown, visual.chargeCooldown, visual.lossOfControlCooldown }) do
         if cooldown and cooldown.Clear then

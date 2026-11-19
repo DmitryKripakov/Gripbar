@@ -357,6 +357,49 @@ local function SetIcon(texture, kind, value, coords)
     end
 end
 
+-- A game button's picture drawn as that button draws it: on a black disc
+-- (its slot's dark background, not a slot's glyph art), with the offset the
+-- game gave the picture (the inspect crosshair 3 past the edges, Back 6),
+-- scaled to our slot.
+local function StyleSpecialIcon(visual, native, region)
+    if not visual.specialBackground then
+        local background = visual:CreateTexture(nil, "BACKGROUND", nil, 0)
+        background:SetPoint("TOPLEFT", 3, -3)
+        background:SetPoint("BOTTOMRIGHT", -3, 3)
+        background:SetColorTexture(0, 0, 0, 1)
+        if visual.iconMask then
+            background:AddMaskTexture(visual.iconMask)
+        end
+        visual.specialBackground = background
+    end
+    visual.slotArt:Hide()
+    visual.specialBackground:Show()
+    local x, y = 0, 0
+    if native and region and region.GetPoint then
+        local _, _, _, ox, oy = region:GetPoint(1)
+        local ratio = (visual:GetWidth() or 0) / math.max(1, native:GetWidth() or 1)
+        x, y = (tonumber(ox) or 0) * ratio, (tonumber(oy) or 0) * ratio
+    end
+    visual.icon:ClearAllPoints()
+    visual.icon:SetPoint("TOPLEFT", visual, "TOPLEFT", x, y)
+    visual.icon:SetPoint("BOTTOMRIGHT", visual, "BOTTOMRIGHT", -x, -y)
+    visual.specialStyled = true
+end
+
+-- Back to a plain slot (an action's own icon on the slot art).
+local function ResetSpecialIcon(visual)
+    if not visual.specialStyled then
+        return
+    end
+    visual.specialStyled = false
+    visual.slotArt:Show()
+    if visual.specialBackground then
+        visual.specialBackground:Hide()
+    end
+    visual.icon:ClearAllPoints()
+    visual.icon:SetAllPoints(visual)
+end
+
 -- A Gripbar slot holding a clicked game button: the live icon on it.
 local function ApplySlotIcon(button)
     local def = button.gameAction
@@ -372,6 +415,10 @@ local function ApplySlotIcon(button)
         end
         button.gameIconKind, button.gameIconValue = kind, value
         SetIcon(button.visual.icon, kind, value, coords)
+    end
+    if not def.body then
+        local native = NativeButton(def)
+        StyleSpecialIcon(button.visual, native, native and IconRegionOf(native))
     end
 end
 
@@ -674,5 +721,7 @@ ns.GAME_ACTIONS = TOP_BUTTONS
 ns.GameActionForSlot = ForSlot
 ns.GameActionNativeName = NativeName
 ns.ApplyGameActionIcon = ApplySlotIcon
+ns.StyleSpecialIcon = StyleSpecialIcon
+ns.ResetSpecialIcon = ResetSpecialIcon
 ns.UpdateGameActionIcons = UpdateSlotIcons
 ns.ToggleGameActions = TogglePicker
