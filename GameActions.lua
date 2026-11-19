@@ -81,16 +81,19 @@ local COMMANDS = {
         tip = "Calls your pet back to you." },
 }
 
+-- Windows open through the game's own buttons (the micro menu, the backpack):
+-- a /run from a macro marks what it opens as addon code ("ForceTaint"), and
+-- the game then blocks closing that window.
 local WINDOWS = {
-    { key = "bags", label = "Bags", body = "/run ToggleAllBags()", icon = "INV_Misc_Bag_08",
+    { key = "bags", label = "Bags", body = "/click MainMenuBarBackpackButton", icon = "INV_Misc_Bag_08",
         tip = "Opens or closes all bags." },
-    { key = "map", label = "World map", body = "/run ToggleWorldMap()", icon = "INV_Misc_Map02",
-        tip = "Opens or closes the world map." },
-    { key = "quests", label = "Quest log", body = "/run ToggleQuestLog()", icon = "INV_Misc_Book_08",
+    { key = "map", label = "World map", body = "/click QuestLogMicroButton", icon = "INV_Misc_Map02",
+        tip = "Opens or closes the world map (with the quest log, as the game's map button does)." },
+    { key = "quests", label = "Quest log", body = "/click QuestLogMicroButton", icon = "INV_Misc_Book_08",
         tip = "Opens or closes the quest log." },
-    { key = "character", label = "Character", body = "/run ToggleCharacter(\"PaperDollFrame\")", icon = "INV_Chest_Cloth_17",
+    { key = "character", label = "Character", body = "/click CharacterMicroButton", icon = "INV_Chest_Cloth_17",
         tip = "Opens or closes the character window." },
-    { key = "spellbook", label = "Spellbook", body = "/run if PlayerSpellsUtil then PlayerSpellsUtil.ToggleSpellBookFrame() else ToggleSpellBook(BOOKTYPE_SPELL) end", icon = "INV_Misc_Book_09",
+    { key = "spellbook", label = "Spellbook", body = "/click SpellbookMicroButton", icon = "INV_Misc_Book_09",
         tip = "Opens or closes the spellbook." },
     { key = "screenshot", label = "Screenshot", body = "/screenshot", icon = "INV_Misc_Spyglass_02",
         tip = "Takes a screenshot." },
