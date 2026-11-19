@@ -1,27 +1,83 @@
--- Debug log: Lua errors (any addon's), blocked protected actions and
--- Gripbar's own messages, kept in the GripbarDebugLog saved variable. The
--- game writes it to WTF\Account\<account>\SavedVariables\Gripbar.lua on
--- /reload and on logout, where it can be read outside the game.
--- On with /grip debug (or the Diagnostics button); the last MAX_LINES stay.
+-- Debug log, kept in the GripbarDebugLog saved variable. The game writes it to
+-- WTF\Account\<account>\SavedVariables\Gripbar.lua on /reload and on logout,
+-- where it can be read outside the game. On with /grip debug.
+--
+--   problems  Lua errors (any addon's), blocked / forbidden protected actions
+--             and Lua warnings: one record per distinct problem, with a
+--             count, first / last time, the session and a stack. Chatter in
+--             the timeline can never push these out.
+--   lines     a timeline of everything (the last MAX_LINES; the same line
+--             repeated in a row is kept once with a count).
+--   sessions  the last MAX_SESSIONS logins (client and Gripbar version).
 local _, ns = ...
 
 local MAX_LINES = 800
+local MAX_PROBLEMS = 200
+local MAX_SESSIONS = 20
+local PROBLEM_KINDS = { error = true, blocked = true, warning = true }
 
 local function On()
     return type(GripbarDebugLog) == "table" and GripbarDebugLog.enabled == true
 end
 
-local function Log(kind, text)
+local function Stamp()
+    return string.format("%s %s %.3f", date("%Y-%m-%d"), date("%H:%M:%S"), GetTime())
+end
+
+-- A problem's identity: its first line (the stack and counts differ).
+local function ProblemKey(kind, text)
+    return kind .. ": " .. (tostring(text):match("^[^\n]*") or "")
+end
+
+local function RecordProblem(kind, text, stack)
+    local problems = GripbarDebugLog.problems
+    local key = ProblemKey(kind, text)
+    for _, record in ipairs(problems) do
+        if record.key == key then
+            record.count = record.count + 1
+            record.last = Stamp()
+            record.lastSession = GripbarDebugLog.session
+            return
+        end
+    end
+    problems[#problems + 1] = {
+        key = key,
+        kind = kind,
+        text = tostring(text),
+        stack = stack,
+        count = 1,
+        first = Stamp(),
+        last = Stamp(),
+        firstSession = GripbarDebugLog.session,
+        lastSession = GripbarDebugLog.session,
+    }
+    while #problems > MAX_PROBLEMS do
+        table.remove(problems, 1)
+    end
+end
+
+local function Log(kind, text, stack)
     if not On() then
         return
     end
+    text = tostring(text)
+    if PROBLEM_KINDS[kind] then
+        RecordProblem(kind, text, stack)
+    end
     local lines = GripbarDebugLog.lines
-    lines[#lines + 1] = string.format("%s %.3f [%s] %s", date("%H:%M:%S"), GetTime(), kind, tostring(text))
-    local extra = #lines - MAX_LINES
-    if extra > 0 then
-        for _ = 1, extra do
-            table.remove(lines, 1)
-        end
+    local body = "[" .. kind .. "] " .. text
+    -- The same line again: counted on the last one, not added.
+    local last = lines[#lines]
+    if last and GripbarDebugLog.lastBody == body then
+        local count = (GripbarDebugLog.lastCount or 1) + 1
+        GripbarDebugLog.lastCount = count
+        lines[#lines] = string.format("%s %s (x%d)", Stamp(), body, count)
+        return
+    end
+    GripbarDebugLog.lastBody, GripbarDebugLog.lastCount = body, 1
+    lines[#lines + 1] = Stamp() .. " " .. body
+    while #lines > MAX_LINES do
+        table.remove(lines, 1)
     end
 end
 
@@ -38,12 +94,29 @@ local function HookErrors()
     seterrorhandler(function(message, ...)
         if On() then
             local ok, stack = pcall(debugstack, 3, 12, 0)
-            Log("error", tostring(message) .. (ok and stack and ("\n" .. stack) or ""))
+            Log("error", tostring(message), ok and stack or nil)
         end
         if previous then
             return previous(message, ...)
         end
     end)
+end
+
+local function StartSession()
+    local version, build, _, interface = GetBuildInfo()
+    GripbarDebugLog.session = (tonumber(GripbarDebugLog.session) or 0) + 1
+    local sessions = GripbarDebugLog.sessions
+    sessions[#sessions + 1] = {
+        session = GripbarDebugLog.session,
+        start = Stamp(),
+        client = string.format("%s (%s, %s)", tostring(version), tostring(build), tostring(interface)),
+        gripbar = tostring(C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("Gripbar", "Version")),
+    }
+    while #sessions > MAX_SESSIONS do
+        table.remove(sessions, 1)
+    end
+    Log("session", string.format("login #%d: client %s, Gripbar %s", GripbarDebugLog.session,
+        sessions[#sessions].client, sessions[#sessions].gripbar))
 end
 
 local events = CreateFrame("Frame")
@@ -56,7 +129,9 @@ events:SetScript("OnEvent", function(_, event, ...)
     if event == "ADDON_LOADED" then
         if ... == "Gripbar" then
             GripbarDebugLog = type(GripbarDebugLog) == "table" and GripbarDebugLog or {}
-            GripbarDebugLog.lines = type(GripbarDebugLog.lines) == "table" and GripbarDebugLog.lines or {}
+            for _, key in ipairs({ "lines", "problems", "sessions" }) do
+                GripbarDebugLog[key] = type(GripbarDebugLog[key]) == "table" and GripbarDebugLog[key] or {}
+            end
             -- Off on a fresh install (/grip debug turns it on).
             if GripbarDebugLog.enabled == nil then
                 GripbarDebugLog.enabled = false
@@ -64,15 +139,16 @@ events:SetScript("OnEvent", function(_, event, ...)
             HookErrors()
         end
     elseif event == "PLAYER_LOGIN" then
-        local version, build, _, interface = GetBuildInfo()
-        Log("session", string.format("login: client %s (%s, %s), Gripbar %s", tostring(version), tostring(build),
-            tostring(interface), tostring(C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("Gripbar", "Version"))))
-        C_Timer.After(5, function()
-            LogDiagnostics("5 s after login")
-        end)
+        if On() then
+            StartSession()
+            C_Timer.After(5, function()
+                LogDiagnostics("5 s after login")
+            end)
+        end
     else
         local addon, action = ...
-        Log(event == "LUA_WARNING" and "warning" or "blocked", event .. ": " .. tostring(addon) .. " " .. tostring(action))
+        Log(event == "LUA_WARNING" and "warning" or "blocked", event .. ": " .. tostring(addon) .. " " .. tostring(action),
+            debugstack and debugstack(2, 8, 0) or nil)
     end
 end)
 
@@ -88,11 +164,22 @@ local function ToggleDebug(args)
     local option = (args and args[2] or ""):lower()
     if option == "clear" then
         GripbarDebugLog.lines = {}
+        GripbarDebugLog.problems = {}
+        GripbarDebugLog.lastBody = nil
         ns.Print("Debug log cleared.")
+        return
+    elseif option == "status" then
+        local problems = GripbarDebugLog.problems or {}
+        local total = 0
+        for _, record in ipairs(problems) do
+            total = total + record.count
+        end
+        ns.Print(string.format("Debug log %s: %d distinct problems (%d in all), %d timeline lines, session #%s.",
+            On() and "on" or "off", #problems, total, #(GripbarDebugLog.lines or {}), tostring(GripbarDebugLog.session)))
         return
     end
     SetEnabled(not On())
-    ns.Print(On() and "Debug log on: errors and Gripbar messages go to SavedVariables\\Gripbar.lua (written on /reload or logout). /grip debug clear empties it."
+    ns.Print(On() and "Debug log on: errors, blocked actions and Gripbar messages go to SavedVariables/Gripbar.lua (written on /reload or logout). /grip debug status, /grip debug clear."
         or "Debug log off.")
 end
 

@@ -68,7 +68,7 @@ Settings > AddOns > Gripbar, or `/grip`:
 | `/grip clear <base\|lt\|rt\|both> <1-4>` | Clear one slot |
 | `/grip guide` | Setup guide |
 | `/grip diag [copy]` | Diagnostics |
-| `/grip debug [clear]` | Debug log (errors, blocked actions) in SavedVariables |
+| `/grip debug [status\|clear]` | Debug log (errors, blocked actions) in SavedVariables |
 | `/grip test`, `/grip learn` | Raw controller input tools |
 
 ## Notes

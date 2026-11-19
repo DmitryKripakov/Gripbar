@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.1.2
 
+- Debug log: errors and blocked actions kept apart from the timeline, one record per problem with a count, so nothing pushes them out; repeated lines collapsed; the last 20 sessions (`/grip debug status`).
+- The icon's round cut sits a little under the ring on every size (5 %): no gap between the ring and the icon.
 - Removed the **Cells shown** setting: the enemy cell is set up on its small corner cell, the bumper cells with the bumper held (`/grip face edit` stays as a command; it no longer survives a reload).
 
 ## 1.1.1
