@@ -34,6 +34,9 @@ local TOP_BUTTONS = {
         liveOffset = 3,
         tip = "The game's inspect / target button (Y)." },
     { key = "back", label = "Back", index = 3, icon = "Spell_ChargeNegative", old = "Gripbar Back",
+        -- The red button reaches past the ring a little less than the game's
+        -- 6 on our slots.
+        liveOffset = 5,
         tip = "The game's back / cancel button (B)." },
     { key = "jump", label = "Jump", index = 4, icon = "Ability_Rogue_Sprint", old = "Gripbar Jump",
         tip = "The game's jump (A). Held on a Gripbar slot it keeps rising in water." },
@@ -389,17 +392,25 @@ local function StyleSpecialIcon(visual, native, region, offset)
     visual.icon:ClearAllPoints()
     visual.icon:SetPoint("TOPLEFT", visual, "TOPLEFT", x, y)
     visual.icon:SetPoint("BOTTOMRIGHT", visual, "BOTTOMRIGHT", -x, -y)
-    -- Cut round only when the game's picture is (Back's red square is not:
-    -- it reaches past the ring).
+    -- Cut round inside the ring when the game's picture is; else (Back's
+    -- red button) at the ring's outer edge, so it reaches over the ring
+    -- without its corners showing past it.
     local masked = not region or not region.GetNumMaskTextures or region:GetNumMaskTextures() > 0
-    -- The slot's icon starts masked (BuildSlotVisual).
-    if visual.iconMask and masked ~= (visual.iconMasked ~= false) then
-        if masked then
-            visual.icon:AddMaskTexture(visual.iconMask)
-        else
-            visual.icon:RemoveMaskTexture(visual.iconMask)
+    if visual.iconMask then
+        if not visual.outerMask then
+            local outer = visual:CreateMaskTexture()
+            outer:SetAllPoints(visual)
+            outer:SetAtlas("CircleMask")
+            visual.outerMask = outer
         end
-        visual.iconMasked = masked
+        -- The slot's icon starts with the inner mask (BuildSlotVisual).
+        local want = masked and "inner" or "outer"
+        local current = visual.iconMaskKind or "inner"
+        if want ~= current then
+            visual.icon:RemoveMaskTexture(current == "inner" and visual.iconMask or visual.outerMask)
+            visual.icon:AddMaskTexture(want == "inner" and visual.iconMask or visual.outerMask)
+            visual.iconMaskKind = want
+        end
     end
     visual.specialStyled = true
 end
@@ -416,9 +427,10 @@ local function ResetSpecialIcon(visual)
     end
     visual.icon:ClearAllPoints()
     visual.icon:SetAllPoints(visual)
-    if visual.iconMask and visual.iconMasked == false then
+    if visual.iconMaskKind == "outer" then
+        visual.icon:RemoveMaskTexture(visual.outerMask)
         visual.icon:AddMaskTexture(visual.iconMask)
-        visual.iconMasked = true
+        visual.iconMaskKind = "inner"
     end
 end
 
