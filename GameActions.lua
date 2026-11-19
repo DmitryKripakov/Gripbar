@@ -397,21 +397,24 @@ local function StyleSpecialIcon(visual, native, region, offset)
     -- without its corners showing past it.
     local masked = not region or not region.GetNumMaskTextures or region:GetNumMaskTextures() > 0
     if visual.iconMask then
-        if not visual.outerMask then
-            local outer = visual:CreateMaskTexture()
-            outer:SetAllPoints(visual)
-            -- Black past its edges: an atlas mask repeats its edge pixels
-            -- outward, and a circle touches its square's edges at four
-            -- points, so the picture showed through there past the ring.
-            outer:SetTexture("Interface/CharacterFrame/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-            visual.outerMask = outer
+        -- Masks that are black past their edges: an atlas mask repeats its
+        -- edge pixels outward, and a circle touches its square's edges at
+        -- four points, so a picture reaching past the mask (these do) showed
+        -- there in four strips.
+        local function ClampedMask(inset)
+            local mask = visual:CreateMaskTexture()
+            mask:SetPoint("TOPLEFT", inset, -inset)
+            mask:SetPoint("BOTTOMRIGHT", -inset, inset)
+            mask:SetTexture("Interface/CharacterFrame/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+            return mask
         end
-        -- The slot's icon starts with the inner mask (BuildSlotVisual).
-        local want = masked and "inner" or "outer"
-        local current = visual.iconMaskKind or "inner"
+        visual.specialMasks = visual.specialMasks or { inside = ClampedMask(3), outer = ClampedMask(0) }
+        local want = masked and "inside" or "outer"
+        -- The slot's icon starts with the slot's own mask (BuildSlotVisual).
+        local current = visual.iconMaskKind or "slot"
         if want ~= current then
-            visual.icon:RemoveMaskTexture(current == "inner" and visual.iconMask or visual.outerMask)
-            visual.icon:AddMaskTexture(want == "inner" and visual.iconMask or visual.outerMask)
+            visual.icon:RemoveMaskTexture(current == "slot" and visual.iconMask or visual.specialMasks[current])
+            visual.icon:AddMaskTexture(visual.specialMasks[want])
             visual.iconMaskKind = want
         end
     end
@@ -430,10 +433,10 @@ local function ResetSpecialIcon(visual)
     end
     visual.icon:ClearAllPoints()
     visual.icon:SetAllPoints(visual)
-    if visual.iconMaskKind == "outer" then
-        visual.icon:RemoveMaskTexture(visual.outerMask)
+    if visual.iconMaskKind and visual.iconMaskKind ~= "slot" then
+        visual.icon:RemoveMaskTexture(visual.specialMasks[visual.iconMaskKind])
         visual.icon:AddMaskTexture(visual.iconMask)
-        visual.iconMaskKind = "inner"
+        visual.iconMaskKind = "slot"
     end
 end
 
