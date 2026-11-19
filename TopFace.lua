@@ -995,6 +995,10 @@ events:RegisterEvent("ACTIONBAR_HIDEGRID")
 events:SetScript("OnEvent", function(_, event, slot)
     if event == "PLAYER_LOGIN" then
         HookBindingStack()
+        -- Showing one kind of cells is for a moment of setup, not kept.
+        if GripbarDB then
+            GripbarDB.topFaceEdit = nil
+        end
         return
     elseif event == "PLAYER_ENTERING_WORLD" and not ns.topFaceSlots and ns.ReserveTopFaceSlots then
         ns.ReserveTopFaceSlots()

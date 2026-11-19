@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Removed the **Cells shown** setting: the enemy cell is set up on its small corner cell, the bumper cells with the bumper held (`/grip face edit` stays as a command; it no longer survives a reload).
+
 ## 1.1.1
 
 - The mini cells' round cut, dark disc and cooldown swipe sit inside the ring in proportion to the cell size (no see-through gap between the ring and the icon).
