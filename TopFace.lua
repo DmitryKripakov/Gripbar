@@ -149,6 +149,7 @@ local function LayoutDisplay(display)
     else
         visual:SetAllPoints(holder)
     end
+    ns.SetSlotInsets(visual, display.pushed and width - PRESSED_OFFSET or width)
     if visual.count and visual.countFont then
         local ratio = width / ns.LAYOUT.BUTTON_SIZE_EXPANDED
         local fontSize = visual.countFontSize * ratio * ns.LAYOUT.COUNT_TEXT_SCALE

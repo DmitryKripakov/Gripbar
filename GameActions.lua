@@ -370,8 +370,9 @@ end
 local function StyleSpecialIcon(visual, native, region, offset)
     if not visual.specialBackground then
         local background = visual:CreateTexture(nil, "BACKGROUND", nil, 0)
-        background:SetPoint("TOPLEFT", 3, -3)
-        background:SetPoint("BOTTOMRIGHT", -3, 3)
+        local inset = visual.slotInset or 3
+        background:SetPoint("TOPLEFT", inset, -inset)
+        background:SetPoint("BOTTOMRIGHT", -inset, inset)
         background:SetColorTexture(0, 0, 0, 1)
         if visual.iconMask then
             background:AddMaskTexture(visual.iconMask)
@@ -408,7 +409,7 @@ local function StyleSpecialIcon(visual, native, region, offset)
             mask:SetTexture("Interface/CharacterFrame/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
             return mask
         end
-        visual.specialMasks = visual.specialMasks or { inside = ClampedMask(3), outer = ClampedMask(0) }
+        visual.specialMasks = visual.specialMasks or { inside = ClampedMask(visual.slotInset or 3), outer = ClampedMask(0) }
         local want = masked and "inside" or "outer"
         -- The slot's icon starts with the slot's own mask (BuildSlotVisual).
         local current = visual.iconMaskKind or "slot"

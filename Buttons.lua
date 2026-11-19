@@ -33,6 +33,37 @@ end
 local function RegisterExtraDisplay(display)
     extraDisplays[#extraDisplays + 1] = display
 end
+
+-- How far the icon's round cut, its dark disc and the cooldown swipes sit
+-- inside the ring: 3 on a 30 slot, in proportion on other sizes (the ring's
+-- own width scales with the slot; a fixed 3 left a see-through gap on the
+-- small mini cells).
+local function InsetFor(size)
+    return math.max(1, (tonumber(size) or 30) * 0.1)
+end
+
+local function SetSlotInsets(visual, size)
+    local inset = InsetFor(size)
+    if visual.slotInset == inset then
+        return
+    end
+    visual.slotInset = inset
+    local function Fit(region, amount)
+        if region then
+            region:ClearAllPoints()
+            region:SetPoint("TOPLEFT", amount, -amount)
+            region:SetPoint("BOTTOMRIGHT", -amount, amount)
+        end
+    end
+    Fit(visual.iconMask, inset)
+    Fit(visual.cooldown, inset)
+    Fit(visual.lossOfControlCooldown, inset)
+    Fit(visual.chargeCooldown, inset * 2 / 3)
+    Fit(visual.specialBackground, inset)
+    if visual.specialMasks then
+        Fit(visual.specialMasks.inside, inset)
+    end
+end
 local focusRouting = ns.focusRouting
 local Print = ns.Print
 local GetMedia = ns.GetMedia
@@ -1613,6 +1644,7 @@ ns.CreateActionButton = CreateActionButton
 ns.ForEachButton = ForEachButton
 ns.ForEachVisualButton = ForEachVisualButton
 ns.RegisterExtraDisplay = RegisterExtraDisplay
+ns.SetSlotInsets = SetSlotInsets
 ns.BuildSlotVisual = BuildSlotVisual
 ns.UpdateAllButtonVisuals = UpdateAllButtonVisuals
 ns.RefreshButtons = RefreshButtons
