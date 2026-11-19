@@ -386,7 +386,8 @@ local function StyleSpecialIcon(visual, native, region)
     -- Cut round only when the game's picture is (Back's red square is not:
     -- it reaches past the ring).
     local masked = not region or not region.GetNumMaskTextures or region:GetNumMaskTextures() > 0
-    if visual.iconMask and masked ~= visual.iconMasked then
+    -- The slot's icon starts masked (BuildSlotVisual).
+    if visual.iconMask and masked ~= (visual.iconMasked ~= false) then
         if masked then
             visual.icon:AddMaskTexture(visual.iconMask)
         else
