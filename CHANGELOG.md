@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
-- Own X / Y / B / A on the top bar: the top bar's face buttons and the LB / RB targeting bars take actions of your own. Four cells per face button: normal, living enemy targeted, LB held, RB held; empty cells and LT / RT + a face button stay the game's (`/grip face`, `/grip face edit`).
-- Debug log: Lua errors, blocked actions and Gripbar messages kept in SavedVariables (`/grip debug`).
-- Game actions: the top bar's Interact, Inspect, Back and Jump as macros to put on any slot, with the game's live icon (`/grip actions`).
+- **Own X / Y / B / A on the top bar.** The top bar's face buttons and the bumper bars take actions of your own, drawn like the game's buttons. Five cells per face button: normal; living enemy targeted (shown small in the button's corner and swapped in when an enemy is targeted); LB held; RB held; LB + RB held. Empty cells and LT / RT + a face button stay the game's. Set them up without a target or a bumper with **Cells shown** (`/grip face edit`), empty one with `/grip face clear`.
+- **Game actions** (`/grip actions`): the game's Interact, Inspect, Back, Jump and the bumper bars' shortcuts as macros for any slot, drawn with the game's live picture; targeting, combat and pet commands; windows (bags, map, quest log, character, spellbook) opened through the game's own buttons.
+- **Debug log** (`/grip debug`): Lua errors, blocked actions and Gripbar messages kept in SavedVariables, for bug reports.
+- All round icon cuts clip cleanly (no strips past the ring).
 - Removed: swap melee and wand (put Shoot or any spell on X's enemy cell instead).
 
 ## 1.0.0

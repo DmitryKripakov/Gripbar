@@ -22,12 +22,12 @@ Forever's crossbar gives you the d-pad and the face buttons on four layers (no t
   | Razer Wolverine / Kishi (`razer`) | M1, M2 | M3, M4 |
   | Generic (`generic`) | P1, P2 | P3, P4 |
 
-- **Own X / Y / B / A on the top bar.** The top bar's face buttons (the game's fixed Interact, Inspect, Back, Jump) and the LB / RB targeting bars take actions of your own, drawn like the game's. Each face button has four cells: normal, living enemy targeted (so X can interact as usual and cast your own spell or Shoot on an enemy; shown small in the button's corner and swapped in when an enemy is targeted), LB held and RB held (say, Back on RB + B). Empty cells and LT / RT + a face button stay the game's. `/grip face edit` shows one kind of cells to set them up without a target or a bumper.
+- **Own X / Y / B / A on the top bar.** The top bar's face buttons (the game's fixed Interact, Inspect, Back, Jump) and the bumper bars take actions of your own, drawn like the game's. Each face button has five cells: normal; living enemy targeted (so X can interact as usual and cast your own spell or Shoot on an enemy; shown small in the button's corner and swapped in when an enemy is targeted); LB held; RB held (say, Back on RB + B); LB + RB held. Empty cells and LT / RT + a face button stay the game's. **Cells shown** (`/grip face edit`) shows one kind of cells to set them up without a target or a bumper.
 - **Page binds.** Keys that fire a button's slot on crossbar page 2 or 3 without switching to it, on whichever LT / RT layer is held. Handy with Steam Input long presses on rarely used buttons.
 - **Game actions** (`/grip actions`): drag onto any slot, as "GB ..." macros:
   - the game's fixed buttons: Interact, Inspect, Back, Jump and the LB / RB bars' shortcut buttons. On Gripbar slots they show the game's live icon (the smart interact's pickaxe, hand, gear...) and handle holding;
   - targeting and combat: target enemy / friend, last target, last enemy, clear target, assist, follow, start / stop attack, sit, dismount, pet attack / follow;
-  - windows: bags, world map, quest log, character, spellbook, screenshot.
+  - windows: bags, world map, quest log, character, spellbook (opened through the game's own buttons), screenshot.
 - **Paging paddles.** A paddle can page the crossbar (previous / next) instead of firing its slots.
 - **Native badge offsets.** Move the crossbar's own LT, RT and LT + RT prompts.
 
@@ -62,9 +62,13 @@ Settings > AddOns > Gripbar, or `/grip`:
 | `/grip badge [lt\|rt\|both] [x y \| reset]` | Move the native trigger badges |
 | `/grip binds [assign <2\|3> \| clear [2\|3]]` | Page 2 / 3 binds |
 | `/grip face` | Toggle your own actions on the top bar's X / Y / B / A |
+| `/grip face edit [normal\|enemy\|lb\|rb\|lbrb\|off]` | Show one kind of cells to drop actions on |
+| `/grip face clear <normal\|enemy\|lb\|rb\|lbrb> <x\|y\|b\|a>` | Empty one cell |
+| `/grip actions` | Game actions to drag onto slots |
 | `/grip clear <base\|lt\|rt\|both> <1-4>` | Clear one slot |
 | `/grip guide` | Setup guide |
 | `/grip diag [copy]` | Diagnostics |
+| `/grip debug [clear]` | Debug log (errors, blocked actions) in SavedVariables |
 | `/grip test`, `/grip learn` | Raw controller input tools |
 
 ## Notes
@@ -72,6 +76,7 @@ Settings > AddOns > Gripbar, or `/grip`:
 - Built for **WoW: Forever** (Interface 16001) and its native gamepad crossbar; it does nothing on other clients.
 - Actions live in the game's own gamepad action storage, per character. Settings are account-wide.
 - Do not run it together with SNRN Backhand: both would bind the same keys.
+- Developer notes on the game's pitfalls: [docs/KNOWLEDGE.md](docs/KNOWLEDGE.md).
 
 ## Credits
 

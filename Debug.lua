@@ -57,9 +57,9 @@ events:SetScript("OnEvent", function(_, event, ...)
         if ... == "Gripbar" then
             GripbarDebugLog = type(GripbarDebugLog) == "table" and GripbarDebugLog or {}
             GripbarDebugLog.lines = type(GripbarDebugLog.lines) == "table" and GripbarDebugLog.lines or {}
-            -- On until switched off (a fresh install starts logging).
+            -- Off on a fresh install (/grip debug turns it on).
             if GripbarDebugLog.enabled == nil then
-                GripbarDebugLog.enabled = true
+                GripbarDebugLog.enabled = false
             end
             HookErrors()
         end
