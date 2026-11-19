@@ -341,6 +341,11 @@ local function ApplySlotIcon(button)
     end
     local kind, value = LiveIcon(def)
     if button.gameIconKind ~= kind or button.gameIconValue ~= value then
+        if button.isFace and ns.Log then
+            local native = NativeButton(def)
+            ns.Log("icon", string.format("%s on slot %s: %s %s from %s", tostring(def.key), tostring(button.actionSlot),
+                tostring(kind), tostring(value), native and native:GetName() or "no game button"))
+        end
         button.gameIconKind, button.gameIconValue = kind, value
         SetIcon(button.visual.icon, kind, value)
         button.visual.icon:SetTexCoord(0, 1, 0, 1)

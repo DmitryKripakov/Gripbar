@@ -32,13 +32,13 @@ local FACES = {
     { name = "B", key = "PAD2", field = "faceRightButton" },
     { name = "A", key = "PAD1", field = "faceBottomButton" },
 }
-local LAYER_BARS = { lb = "friendlyTargetingBar", rb = "hostileTargetingBar" }
+-- The bumper layers: LB friendly targeting, RB hostile targeting, both held
+-- the game's shortcuts bar.
+local LAYER_BARS = { lb = "friendlyTargetingBar", rb = "hostileTargetingBar", lbrb = "shortcutsBar" }
 local TRIGGER_BARS = { lt = "leftBar", rt = "rightBar", ltrt = "bottomBar" }
--- Both bumpers held: the game's shortcuts bar (no cells of ours there).
-local BOTH_BUMPERS_BAR = "shortcutsBar"
-local CELL_OFFSET = { normal = 0, enemy = 4, lb = 8, rb = 12 }
-local EDIT_MODES = { "normal", "enemy", "lb", "rb" }
-local EDIT_LABELS = { normal = "normal cells", enemy = "enemy cells", lb = "LB cells", rb = "RB cells" }
+local CELL_OFFSET = { normal = 0, enemy = 4, lb = 8, rb = 12, lbrb = 16 }
+local EDIT_MODES = { "normal", "enemy", "lb", "rb", "lbrb" }
+local EDIT_LABELS = { normal = "normal cells", enemy = "enemy cells", lb = "LB cells", rb = "RB cells", lbrb = "LB + RB cells" }
 local PRESSED_OFFSET = 4 -- the game's pushed style: 4 smaller, 2 lower
 -- The game's art under ours; its shadows stay (they follow its own states).
 local NATIVE_ART = { "icon", "SlotArt", "SpecialActionIcon", "IconOverlay", "Border", "SlotBackground",
@@ -65,7 +65,7 @@ local function NativeButton(layer, index)
         local bar = layer == "top" and bars.topBar or bars[TRIGGER_BARS[layer]]
         return bar and bar.Right and bar.Right["ActionButton" .. index], bar
     end
-    local bar = bars[layer == "lbrb" and BOTH_BUMPERS_BAR or LAYER_BARS[layer]]
+    local bar = bars[LAYER_BARS[layer]]
     return bar and bar[FACES[index].field], bar
 end
 
@@ -217,7 +217,7 @@ header:SetAttribute("gb-eval", [[
             local enemy = face:GetAttribute("gb-enemy")
             local slot
             if self:GetAttribute("gb-on") and state ~= "off" then
-                if edit == "lb" or edit == "rb" or edit == "normal" then
+                if edit == "lb" or edit == "rb" or edit == "lbrb" or edit == "normal" then
                     slot = face:GetAttribute("gb-" .. edit)
                 elseif (edit == "enemy" or state == "enemy") and enemy and (edit or grid or HasAction(enemy)) then
                     slot = enemy
@@ -264,14 +264,12 @@ local PRECLICK = [[
             self:SetAttribute("gb-use", nil)
         elseif lbHeld and rbHeld then
             layer = "lbrb"
-            self:SetAttribute("gb-layer", layer)
-            self:SetAttribute("gb-use", nil)
         elseif lbHeld then
             layer = "lb"
         elseif rbHeld then
             layer = "rb"
         end
-        if layer == "top" or layer == "lb" or layer == "rb" then
+        if layer == "top" or layer == "lb" or layer == "rb" or layer == "lbrb" then
             local slot = self:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
             if slot and not HasAction(slot) then
                 slot = nil
@@ -324,10 +322,7 @@ end
 -- The cell the mouse works on: the held bumper's, else the top cell shown.
 local function MouseSlot(face, index)
     local bumper = HeldBumper()
-    if bumper == "lbrb" then
-        -- The game's shortcuts bar: no cells of ours.
-        return nil
-    elseif bumper then
+    if bumper then
         return Cell(index, bumper)
     end
     return TopSlot(face)
@@ -388,7 +383,7 @@ local function CreateFace(index)
         if down then
             SetDisplayPushed(display, self:GetAttribute("gb-use") ~= nil)
         else
-            for _, each in ipairs({ face.top, face.lb, face.rb }) do
+            for _, each in ipairs({ face.top, face.lb, face.rb, face.lbrb }) do
                 SetDisplayPushed(each, false)
             end
         end
@@ -627,7 +622,7 @@ local function ApplyTopFace()
             end
             secure:SetShown(on)
             if not on then
-                for _, display in ipairs({ face.top, face.mini, face.lb, face.rb }) do
+                for _, display in ipairs({ face.top, face.mini, face.lb, face.rb, face.lbrb }) do
                     ShowDisplay(display, nil)
                 end
             end
@@ -708,7 +703,7 @@ local function SetEditMode(mode)
         mode = nil
     end
     if mode and not CELL_OFFSET[mode] then
-        Print("/grip face edit [normal | enemy | lb | rb | off]")
+        Print("/grip face edit [normal | enemy | lb | rb | lbrb | off]")
         return
     end
     if mode then
@@ -733,7 +728,7 @@ local function ClearCell(kind, faceName)
         end
     end
     if not CELL_OFFSET[kind] or not index then
-        Print("/grip face clear <normal | enemy | lb | rb> <x | y | b | a>")
+        Print("/grip face clear <normal | enemy | lb | rb | lbrb> <x | y | b | a>")
         return
     end
     if InCombatLockdown() then

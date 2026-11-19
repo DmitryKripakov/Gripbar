@@ -274,10 +274,10 @@ end
 
 -- The cells of our own top bar X / Y / B / A (TopFace.lua), per face button
 -- in X, Y, B, A order: 1-4 normal, 5-8 while a living enemy is targeted,
--- 9-12 with LB held, 13-16 with RB held. Kept once chosen (a shorter list
+-- 9-12 with LB held, 13-16 with RB held, 17-20 with both held. Kept once chosen (a shorter list
 -- from an older version keeps its cells and grows); new ones are free slots
 -- no crossbar page or paddle uses.
-local TOP_FACE_SLOT_COUNT = 16
+local TOP_FACE_SLOT_COUNT = 20
 
 local function ReserveTopFaceSlots()
     ns.topFaceSlots = nil
