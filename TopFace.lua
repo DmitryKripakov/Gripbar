@@ -670,10 +670,14 @@ local function CreateFace(index)
                 info[#info + 1] = string.format("%s %s/%d%s", layer, native:GetFrameStrata(), native:GetFrameLevel(),
                     bar and bar:IsShown() and " shown" or "")
             end
-            if bar and bar:IsShown() then
-                bumperShown = true
+            if bar and bar:IsShown() and native then
+                bumperShown = native
             end
         end
+        -- The mouse area on the button the game shows: the bumper bar's
+        -- (laid out wider and larger than the top bar) or the top bar's.
+        secure:ClearAllPoints()
+        secure:SetAllPoints(bumperShown or topNative)
         local strata = bumperShown and "HIGH" or baseStrata
         secure:SetFrameStrata(strata)
         mini:SetFrameStrata(strata)
