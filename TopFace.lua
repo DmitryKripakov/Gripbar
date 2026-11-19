@@ -51,6 +51,7 @@ local gridShown = false
 local lastError
 local loggedStatus
 local UpdateMirror -- below; the displays use it
+local AnchorMini
 
 local function Bars()
     local main = _G.GamepadMainActionBarFrame
@@ -126,15 +127,23 @@ local function LayoutDisplay(display)
     visual.border:SetShown(not pressed)
 end
 
+-- The small cell in the button's lower right corner: from its centre to a
+-- little past its corner, so it follows the button's size. Pressed, it moves
+-- as the corner of a pressed game button does (the centre 2 lower, the right
+-- edge 2 in).
+function AnchorMini(holder, native, pressed)
+    local dy, dx = pressed and -2 or 0, pressed and -2 or 0
+    holder:ClearAllPoints()
+    holder:SetPoint("TOPLEFT", native, "CENTER", 5, -5 + dy)
+    holder:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", 4 + dx, -4)
+end
+
 local function CreateDisplay(native, bar, mini)
     -- On the bar (not the button): the targeting bars dim their disabled
     -- buttons, which must not dim ours.
     local holder = CreateFrame("Frame", nil, bar)
     if mini then
-        -- The small cell in the button's lower right corner: from its centre
-        -- to a little past its corner, so it follows the button's size.
-        holder:SetPoint("TOPLEFT", native, "CENTER", 5, -5)
-        holder:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", 4, -4)
+        AnchorMini(holder, native, false)
     else
         holder:SetAllPoints(native)
         holder:SetFrameLevel(native:GetFrameLevel() + 3)
@@ -253,10 +262,15 @@ local function ShowDisplay(display, slot, mirror)
     end
 end
 
-local function SetDisplayPushed(display, pushed)
+local function SetDisplayPushed(display, pushed, mini)
     if display and display.pushed ~= pushed then
         display.pushed = pushed
         LayoutDisplay(display)
+        -- The mini cell rides along with our pressed button (with the game's
+        -- own button it rides along by itself).
+        if mini then
+            AnchorMini(mini.holder, mini.native, pushed)
+        end
     end
 end
 
@@ -456,14 +470,16 @@ local function CreateFace(index)
 
     -- The pressed look on the cell that fired (ours only).
     secure:SetScript("PostClick", function(self, _, down)
-        local display = face[self:GetAttribute("gb-layer") or "top"]
+        local layer = self:GetAttribute("gb-layer") or "top"
+        local display = face[layer]
         if not (display and display.holder) then
             display = nil
         end
         if down then
-            SetDisplayPushed(display, self:GetAttribute("gb-use") ~= nil)
+            SetDisplayPushed(display, self:GetAttribute("gb-use") ~= nil, layer == "top" and face.mini or nil)
         else
-            for _, each in ipairs({ face.top, face.lb, face.rb, face.lbrb }) do
+            SetDisplayPushed(face.top, false, face.mini)
+            for _, each in ipairs({ face.lb, face.rb, face.lbrb }) do
                 SetDisplayPushed(each, false)
             end
         end
