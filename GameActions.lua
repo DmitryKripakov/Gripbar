@@ -338,7 +338,13 @@ local function LiveIcon(def)
         local kind, value, coords
         if region then
             local atlas = region.GetAtlas and region:GetAtlas()
+            if atlas == "" then
+                atlas = nil
+            end
             local texture = not atlas and region.GetTexture and region:GetTexture()
+            if texture == "" then
+                texture = nil
+            end
             if atlas then
                 kind, value = "atlas", atlas
             elseif texture then
@@ -351,7 +357,18 @@ local function LiveIcon(def)
             if button:IsVisible() then
                 def.lastLive = { kind, value, coords }
             end
+            -- What the game's button shows, once per change (debug log).
+            if value ~= def.loggedValue and ns.Log then
+                def.loggedValue = value
+                ns.Log("icon", string.format("%s: %s %s (game button %s, shown %s)", tostring(def.key), kind, tostring(value),
+                    button:GetName() or "?", tostring(button:IsVisible())))
+            end
             return kind, value, coords
+        end
+        if ns.Log and def.loggedValue ~= "none" then
+            def.loggedValue = "none"
+            ns.Log("icon", string.format("%s: no picture on the game button (%s, shown %s)", tostring(def.key),
+                button and button:GetName() or "missing", tostring(button and button:IsVisible())))
         end
         if def.atlas then
             return "atlas", def.atlas
