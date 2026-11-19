@@ -29,6 +29,9 @@ local TOP_BUTTONS = {
         live = function()
             return UnitExists("target") and "crosshair_inspect_32" or "crosshair_unableinspect_32"
         end,
+        -- ...and placed as then: 3 past the button's edges (with a bumper
+        -- held the game moves it 6 inside, for the marker).
+        liveOffset = 3,
         tip = "The game's inspect / target button (Y)." },
     { key = "back", label = "Back", index = 3, icon = "Spell_ChargeNegative", old = "Gripbar Back",
         tip = "The game's back / cancel button (B)." },
@@ -361,7 +364,7 @@ end
 -- (its slot's dark background, not a slot's glyph art), with the offset the
 -- game gave the picture (the inspect crosshair 3 past the edges, Back 6),
 -- scaled to our slot.
-local function StyleSpecialIcon(visual, native, region)
+local function StyleSpecialIcon(visual, native, region, offset)
     if not visual.specialBackground then
         local background = visual:CreateTexture(nil, "BACKGROUND", nil, 0)
         background:SetPoint("TOPLEFT", 3, -3)
@@ -375,9 +378,12 @@ local function StyleSpecialIcon(visual, native, region)
     visual.slotArt:Hide()
     visual.specialBackground:Show()
     local x, y = 0, 0
-    if native and region and region.GetPoint then
+    local ratio = native and (visual:GetWidth() or 0) / math.max(1, native:GetWidth() or 1) or 1
+    if offset then
+        -- A fixed placement (past the edges by this much).
+        x, y = -offset * ratio, offset * ratio
+    elseif native and region and region.GetPoint then
         local _, _, _, ox, oy = region:GetPoint(1)
-        local ratio = (visual:GetWidth() or 0) / math.max(1, native:GetWidth() or 1)
         x, y = (tonumber(ox) or 0) * ratio, (tonumber(oy) or 0) * ratio
     end
     visual.icon:ClearAllPoints()
@@ -434,7 +440,7 @@ local function ApplySlotIcon(button)
     end
     if not def.body then
         local native = NativeButton(def)
-        StyleSpecialIcon(button.visual, native, native and IconRegionOf(native))
+        StyleSpecialIcon(button.visual, native, native and IconRegionOf(native), def.liveOffset)
     end
 end
 
