@@ -39,7 +39,7 @@ end
 -- width scales with it): a little under the ring, so no see-through gap
 -- shows between the ring and the icon (a fixed 3 did on the small cells).
 local function InsetFor(size)
-    return math.max(1, (tonumber(size) or 30) * 0.07)
+    return math.max(1, (tonumber(size) or 30) * 0.05)
 end
 
 local function SetSlotInsets(visual, size)
