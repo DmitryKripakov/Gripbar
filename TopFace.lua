@@ -649,25 +649,47 @@ local function CreateFace(index)
     -- read again whenever a bumper bar shows: the game raises a bar it shows,
     -- and the mouse would reach its button instead of ours. Out of combat
     -- (drops happen only then).
+    -- Above every game button under it. While a bumper bar shows, in the
+    -- HIGH layer: the game draws its bumper bars over the crossbar's layer,
+    -- and the mouse reached their buttons instead of ours. Back in the
+    -- crossbar's layer once it goes (HIGH also covers the map). Out of
+    -- combat only (drops happen only then; a change in combat waits).
+    local baseStrata = topNative:GetFrameStrata()
     function face.Raise()
         if InCombatLockdown() then
+            face.raisePending = true
             return
         end
+        face.raisePending = false
+        local bumperShown, info = false, {}
         local level = topNative:GetFrameLevel()
         for layer in pairs(LAYER_BARS) do
-            local native = NativeButton(layer, index)
+            local native, bar = NativeButton(layer, index)
             if native then
                 level = math.max(level, native:GetFrameLevel())
+                info[#info + 1] = string.format("%s %s/%d%s", layer, native:GetFrameStrata(), native:GetFrameLevel(),
+                    bar and bar:IsShown() and " shown" or "")
+            end
+            if bar and bar:IsShown() then
+                bumperShown = true
             end
         end
+        local strata = bumperShown and "HIGH" or baseStrata
+        secure:SetFrameStrata(strata)
+        mini:SetFrameStrata(strata)
         secure:SetFrameLevel(level + 10)
         mini:SetFrameLevel(level + 15)
+        if index == 1 and ns.Log then
+            ns.Log("topface", string.format("layer: %s/%d; game buttons: top %s/%d, %s", strata, secure:GetFrameLevel(),
+                topNative:GetFrameStrata(), topNative:GetFrameLevel(), table.concat(info, ", ")))
+        end
     end
     face.Raise()
     for layer in pairs(LAYER_BARS) do
         local _, bar = NativeButton(layer, index)
         if bar then
             bar:HookScript("OnShow", face.Raise)
+            bar:HookScript("OnHide", face.Raise)
         end
     end
     mini:EnableMouse(true)
@@ -1032,6 +1054,11 @@ events:SetScript("OnEvent", function(_, event, slot)
     elseif event == "PLAYER_ENTERING_WORLD" and not ns.topFaceSlots and ns.ReserveTopFaceSlots then
         ns.ReserveTopFaceSlots()
     elseif event == "PLAYER_REGEN_ENABLED" and not pending then
+        for _, face in pairs(faces) do
+            if face.raisePending then
+                face.Raise()
+            end
+        end
         return
     elseif event == "ACTIONBAR_SLOT_CHANGED" then
         local slots = ns.topFaceSlots
