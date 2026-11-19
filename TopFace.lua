@@ -390,12 +390,25 @@ local PRECLICK = [[
             layer = (ltHeld and rtHeld) and "ltrt" or (ltHeld and "lt" or "rt")
             self:SetAttribute("gb-layer", layer)
             self:SetAttribute("gb-use", nil)
-        elseif lbHeld and rbHeld then
-            layer = "lbrb"
-        elseif lbHeld then
-            layer = "lb"
-        elseif rbHeld then
-            layer = "rb"
+        else
+            -- The bumper layer the game shows (it keeps its LB + RB bar until
+            -- both are let go), else the bumpers held.
+            local shown
+            for _, bumper in ipairs({ "lbrb", "lb", "rb" }) do
+                local bar = control:GetFrameRef("bar-" .. bumper)
+                if not shown and bar and bar:IsVisible() then
+                    shown = bumper
+                end
+            end
+            if shown then
+                layer = shown
+            elseif lbHeld and rbHeld then
+                layer = "lbrb"
+            elseif lbHeld then
+                layer = "lb"
+            elseif rbHeld then
+                layer = "rb"
+            end
         end
         if layer == "top" or layer == "lb" or layer == "rb" or layer == "lbrb" then
             local slot = self:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
@@ -440,6 +453,14 @@ local function BumperDown(key)
 end
 
 local function HeldBumper()
+    -- The bumper bar the game shows, as the presses use it.
+    local bars = Bars()
+    for _, bumper in ipairs({ "lbrb", "lb", "rb" }) do
+        local bar = bars and bars[LAYER_BARS[bumper]]
+        if bar and bar:IsVisible() then
+            return bumper
+        end
+    end
     local lb, rb = BumperDown("PADLSHOULDER"), BumperDown("PADRSHOULDER")
     if lb and rb then
         return "lbrb"
@@ -661,6 +682,13 @@ local function CreateFace(index)
 
     header:WrapScript(secure, "OnClick", PRECLICK)
     header:SetFrameRef("face" .. index, secure)
+    -- The bumper bars, for the presses to see which one the game shows.
+    for layer in pairs(LAYER_BARS) do
+        local _, bar = NativeButton(layer, index)
+        if bar then
+            header:SetFrameRef("bar-" .. layer, bar)
+        end
+    end
     return face
 end
 
