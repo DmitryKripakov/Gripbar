@@ -200,6 +200,10 @@ function UpdateMirror(display)
         display.mirrorAtlas, display.mirrorTexture = atlas, texture
         if atlas then
             visual.icon:SetAtlas(atlas)
+            -- The inspect crosshair is a sprite sheet: its first cell.
+            if atlas:lower():find("^crosshair") and visual.icon.SetSpriteSheetCell then
+                visual.icon:SetSpriteSheetCell(1, 1, 1)
+            end
         elseif texture then
             visual.icon:SetTexture(texture)
             visual.icon:SetTexCoord(region:GetTexCoord())

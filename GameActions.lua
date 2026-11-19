@@ -318,7 +318,9 @@ local function LiveIcon(def)
             end
             local texture = region.GetTexture and region:GetTexture()
             if texture then
-                return "texture", texture
+                local l, r, t, b = region:GetTexCoord()
+                -- The game's crop, part of the key so a new crop repaints.
+                return "texture", texture .. string.format("|%.4f|%.4f|%.4f|%.4f", l, r, t, b), { l, r, t, b }
             end
         end
         if def.atlas then
@@ -328,11 +330,22 @@ local function LiveIcon(def)
     return "texture", "Interface\\Icons\\" .. def.icon
 end
 
-local function SetIcon(texture, kind, value)
+-- Sets a live picture the way the game's button has it: an atlas (the
+-- inspect crosshair is a sprite sheet: its first cell, as the game picks),
+-- or a texture with the game's crop.
+local function SetIcon(texture, kind, value, coords)
     if kind == "atlas" then
         texture:SetAtlas(value)
+        if value:lower():find("^crosshair") and texture.SetSpriteSheetCell then
+            texture:SetSpriteSheetCell(1, 1, 1)
+        end
     else
-        texture:SetTexture(value)
+        texture:SetTexture((value:gsub("|.*$", "")))
+        if coords then
+            texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
+        else
+            texture:SetTexCoord(0, 1, 0, 1)
+        end
     end
 end
 
@@ -342,7 +355,7 @@ local function ApplySlotIcon(button)
     if not def or not button.visual then
         return
     end
-    local kind, value = LiveIcon(def)
+    local kind, value, coords = LiveIcon(def)
     if button.gameIconKind ~= kind or button.gameIconValue ~= value then
         if button.isFace and ns.Log then
             local native = NativeButton(def)
@@ -350,12 +363,7 @@ local function ApplySlotIcon(button)
                 tostring(kind), tostring(value), native and native:GetName() or "no game button"))
         end
         button.gameIconKind, button.gameIconValue = kind, value
-        -- An atlas brings its own coordinates (the inspect crosshair is a
-        -- piece of the cursor sheet): reset them only for a plain texture.
-        if kind ~= "atlas" then
-            button.visual.icon:SetTexCoord(0, 1, 0, 1)
-        end
-        SetIcon(button.visual.icon, kind, value)
+        SetIcon(button.visual.icon, kind, value, coords)
     end
 end
 
@@ -450,16 +458,13 @@ end
 
 local function Paint(entry)
     local button, region = entry.button, entry.button.icon
-    local kind, value = LiveIcon(entry.def)
+    local kind, value, coords = LiveIcon(entry.def)
     local mark = swapped[button]
     if not mark or mark.value ~= value or mark.applied ~= CurrentPicture(region, kind) then
         -- The game's own crop of the icon, put back when we let go.
-        local coords = mark and mark.coords or { region:GetTexCoord() }
-        if kind ~= "atlas" then
-            region:SetTexCoord(0, 1, 0, 1)
-        end
-        SetIcon(region, kind, value)
-        swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = coords }
+        local saved = mark and mark.coords or { region:GetTexCoord() }
+        SetIcon(region, kind, value, coords)
+        swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = saved }
     end
 end
 
@@ -603,8 +608,8 @@ local function CreatePicker()
 
     frame:SetScript("OnShow", function(self)
         for _, b in ipairs(self.buttons) do
-            local kind, value = LiveIcon(b.def)
-            SetIcon(b.icon, kind, value)
+            local kind, value, coords = LiveIcon(b.def)
+            SetIcon(b.icon, kind, value, coords)
         end
     end)
     if type(UISpecialFrames) == "table" then
