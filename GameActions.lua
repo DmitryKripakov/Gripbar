@@ -383,6 +383,17 @@ local function StyleSpecialIcon(visual, native, region)
     visual.icon:ClearAllPoints()
     visual.icon:SetPoint("TOPLEFT", visual, "TOPLEFT", x, y)
     visual.icon:SetPoint("BOTTOMRIGHT", visual, "BOTTOMRIGHT", -x, -y)
+    -- Cut round only when the game's picture is (Back's red square is not:
+    -- it reaches past the ring).
+    local masked = not region or not region.GetNumMaskTextures or region:GetNumMaskTextures() > 0
+    if visual.iconMask and masked ~= visual.iconMasked then
+        if masked then
+            visual.icon:AddMaskTexture(visual.iconMask)
+        else
+            visual.icon:RemoveMaskTexture(visual.iconMask)
+        end
+        visual.iconMasked = masked
+    end
     visual.specialStyled = true
 end
 
@@ -398,6 +409,10 @@ local function ResetSpecialIcon(visual)
     end
     visual.icon:ClearAllPoints()
     visual.icon:SetAllPoints(visual)
+    if visual.iconMask and visual.iconMasked == false then
+        visual.icon:AddMaskTexture(visual.iconMask)
+        visual.iconMasked = true
+    end
 end
 
 -- A Gripbar slot holding a clicked game button: the live icon on it.
