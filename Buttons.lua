@@ -35,11 +35,11 @@ local function RegisterExtraDisplay(display)
 end
 
 -- How far the icon's round cut, its dark disc and the cooldown swipes sit
--- inside the ring: 3 on a 30 slot, in proportion on other sizes (the ring's
--- own width scales with the slot; a fixed 3 left a see-through gap on the
--- small mini cells).
+-- inside the ring's outer edge, in proportion to the slot (the ring's own
+-- width scales with it): a little under the ring, so no see-through gap
+-- shows between the ring and the icon (a fixed 3 did on the small cells).
 local function InsetFor(size)
-    return math.max(1, (tonumber(size) or 30) * 0.1)
+    return math.max(1, (tonumber(size) or 30) * 0.07)
 end
 
 local function SetSlotInsets(visual, size)
