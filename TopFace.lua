@@ -133,8 +133,8 @@ local function CreateDisplay(native, bar, mini)
     if mini then
         -- The small cell in the button's lower right corner: from its centre
         -- to a little past its corner, so it follows the button's size.
-        holder:SetPoint("TOPLEFT", native, "CENTER", 3, -3)
-        holder:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", 5, -5)
+        holder:SetPoint("TOPLEFT", native, "CENTER", 5, -5)
+        holder:SetPoint("BOTTOMRIGHT", native, "BOTTOMRIGHT", 4, -4)
     else
         holder:SetAllPoints(native)
         holder:SetFrameLevel(native:GetFrameLevel() + 3)
