@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.2
 
 - Game action macros in cells (Back, Interact, Inspect, Jump) no longer get swallowed when the same face button's top cell holds an action (Back on a bumper cell sometimes did nothing).
 - Safety net for own X / Y / B / A: at the start of each fight the face buttons are checked and bound again if the game took them; a warning in chat if that fails.
