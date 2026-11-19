@@ -42,7 +42,7 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
 ## Safety net (TopFace.lua)
 
 - `PLAYER_REGEN_DISABLED` fires before the lockdown: check `GetBindingAction(key, true)` is our `CLICK GripbarFaceX:LeftButton` and bind again right there; tell the player only if that fails.
-- The reclaim wrap reports each win back through `control:CallMethod("GBReclaimed", ...)` on our own header (an insecure method called from secure code is fine; it only logs). Our own relays to the game's buttons are marked (`gb-relay` = the button's name) so they are not counted.
+- The reclaim wrap reports each win back through `control:CallMethod("GBReclaimed", ...)` on our own header (an insecure method called from secure code is fine; it only logs). Clicks made from inside a press of ours are not the game's: our relays to its buttons, and **game-action macros in our cells** (`/click` on the top bar's Back / Interact / Inspect / Jump). PRECLICK sets `gb-busy` and returns `nil, message`, so the wrap's post body runs after the press and clears it. Without this the wrap dropped Back on a bumper cell whenever B's current top cell held an action.
 - Cell contents are watched by kind + **name** (a macro's index shifts when macros are added; a spell's ID changes with a new rank). A change within 2 s of a mouse drop / pickup / `/grip face clear`, or with something on the cursor, is the player's; any other is logged and told in chat (a newly learned spell placed by the game, a talent reset, another addon).
 - 5 s after the first `PLAYER_ENTERING_WORLD`: a self-test of the game parts we lean on (`InputBindingManager` and its stack, `PressActionButton`, the face buttons of every layer); a patch that renames them shows in chat instead of failing silently.
 

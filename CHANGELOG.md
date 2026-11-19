@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Game action macros in cells (Back, Interact, Inspect, Jump) no longer get swallowed when the same face button's top cell holds an action (Back on a bumper cell sometimes did nothing).
 - Safety net for own X / Y / B / A: at the start of each fight the face buttons are checked and bound again if the game took them; a warning in chat if that fails.
 - A cell that changes without you (the game placing a newly learned spell, a talent reset, another addon) is reported in chat.
 - A self-test after login reports in chat when a game update changed the crossbar parts Gripbar relies on.

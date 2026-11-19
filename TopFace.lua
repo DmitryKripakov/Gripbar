@@ -402,9 +402,10 @@ local RECLAIM = [[
     if not i or not control:GetAttribute("gb-on") then
         return
     end
-    -- A press of ours handed on to the game's button (our cell is empty).
-    if control:GetAttribute("gb-relay") == name then
-        control:SetAttribute("gb-relay", nil)
+    -- A click from inside a press of ours: handed on to the game's button
+    -- (our cell is empty), or a game-action macro in a cell (/click on the
+    -- game's Back, Interact...).
+    if control:GetAttribute("gb-busy") then
         return
     end
     local face = control:GetFrameRef("face" .. i)
@@ -496,16 +497,23 @@ local PRECLICK = [[
         self:SetAttribute("type", "action")
         self:SetAttribute("action", slot)
         self:SetAttribute("useOnKeyDown", true)
-        return
+        control:SetAttribute("gb-busy", true)
+        return nil, "own"
     end
     local native = self:GetAttribute("gb-native-" .. (self:GetAttribute("gb-layer") or "top"))
     if not native then
         return false
     end
-    control:SetAttribute("gb-relay", native)
     self:SetAttribute("type", "macro")
     self:SetAttribute("useOnKeyDown", down and true or false)
     self:SetAttribute("macrotext", "/click " .. native .. " LeftButton" .. (down and " true" or ""))
+    control:SetAttribute("gb-busy", true)
+    return nil, "relay"
+]]
+
+-- After the press (run because PRECLICK returned a message).
+local POSTCLICK = [[
+    control:SetAttribute("gb-busy", nil)
 ]]
 
 local function TopSlot(face)
@@ -836,7 +844,7 @@ local function CreateFace(index)
         GameTooltip:Hide()
     end)
 
-    header:WrapScript(secure, "OnClick", PRECLICK)
+    header:WrapScript(secure, "OnClick", PRECLICK, POSTCLICK)
     header:SetFrameRef("face" .. index, secure)
     -- The bumper bars, for the presses to see which one the game shows.
     for layer in pairs(LAYER_BARS) do
