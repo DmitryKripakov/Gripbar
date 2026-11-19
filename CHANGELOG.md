@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- Own X / Y / B / A in combat: a loot, group loot (Need / Greed) or bags window opening mid-fight no longer hands the face buttons back to the game for the rest of the fight (X hitting with the weapon instead of the spell). The keys are won back from secure code on the next press.
+- A face button goes to a game window only while that window really binds it.
+
 ## 1.2.0
 
 - **Russian interface:** settings, chat messages, `/grip` help, the game actions window, the setup guide and tooltips follow the client's language (ruRU translated; English otherwise).
