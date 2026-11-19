@@ -1363,11 +1363,10 @@ local function BuildSlotVisual(button, panel, paddleIndex)
         visual.iconMask = visual:CreateMaskTexture()
         visual.iconMask:SetPoint("TOPLEFT", 3, -3)
         visual.iconMask:SetPoint("BOTTOMRIGHT", -3, 3)
-        if AtlasExists(ATLAS.circleMask) then
-            visual.iconMask:SetAtlas(ATLAS.circleMask)
-        else
-            visual.iconMask:SetTexture(GetMedia("CircleMask"), "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-        end
+        -- Black past its edges: an atlas mask repeats its edge pixels
+        -- outward, and a circle touches its square's edges at four points,
+        -- so anything drawn past the mask showed there in four strips.
+        visual.iconMask:SetTexture("Interface/CharacterFrame/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
         visual.icon:AddMaskTexture(visual.iconMask)
     end
 
