@@ -832,6 +832,28 @@ local function CoreBindingsOnly()
     return true
 end
 
+-- The name of a binding set above the game's core one that binds this key
+-- (a menu that takes the face buttons), or nil. Only those take a key from
+-- us: a set that does not bind it leaves it alone, and the game does not
+-- bind it again when that set goes (so ours stays, in combat too).
+local function KeyTakenBy(key)
+    local manager = GamepadSharedUtility and GamepadSharedUtility.InputBindingManager
+    local stack = manager and manager.bindingSetStack
+    if type(stack) ~= "table" then
+        return (not CoreBindingsOnly()) and "?" or nil
+    end
+    for i = #stack, 1, -1 do
+        local set = stack[i]
+        if type(set) == "table" and not set.treatBindsAsCore and set.GetBinding then
+            local ok, binding = pcall(set.GetBinding, set, key)
+            if ok and binding then
+                return tostring(set.name or "?")
+            end
+        end
+    end
+    return nil
+end
+
 local function AnyCellFilled(index)
     for kind in pairs(CELL_OFFSET) do
         local slot = Cell(index, kind)
@@ -876,6 +898,7 @@ local function ApplyTopFace()
     header:SetAttribute("gb-edit", edit)
 
     local taken = 0
+    local menus = {}
     local lbIndex, rbIndex = PadIndex("PADLSHOULDER"), PadIndex("PADRSHOULDER")
     for index, def in ipairs(FACES) do
         local face = faces[index]
@@ -902,7 +925,11 @@ local function ApplyTopFace()
             end
             -- Bound while a cell holds something (or cells are shown to set
             -- up), and only while the game's core bindings are on top.
-            if on and (gridShown or edit or AnyCellFilled(index)) and CoreBindingsOnly() then
+            local takenBy = KeyTakenBy(def.key)
+            if takenBy then
+                menus[#menus + 1] = def.name .. ": " .. takenBy
+            end
+            if on and (gridShown or edit or AnyCellFilled(index)) and not takenBy then
                 SetOverrideBindingClick(header, true, def.key, secure:GetName(), "LeftButton")
                 local game, ours = ModifiedVariants(def.key)
                 for _, variant in ipairs(ours) do
@@ -931,9 +958,9 @@ local function ApplyTopFace()
         status = "on, but the game's top bar was not found"
         shownStatus = L("on, but the game's top bar was not found")
     else
-        local core = CoreBindingsOnly()
+        local core = #menus == 0
         status = string.format("on: %d of 4 buttons bound%s%s", taken,
-            core and "" or " (a menu holds the face buttons)",
+            core and "" or (" (held by the game's " .. table.concat(menus, ", ") .. ")"),
             edit and ("; showing " .. EDIT_LABELS[edit]) or "")
         shownStatus = string.format(L("on: %d of 4 buttons bound%s%s"), taken,
             core and "" or L(" (a menu holds the face buttons)"),
@@ -1045,6 +1072,11 @@ local function HookBindingStack()
     end
     local queued, lastCore = false, nil
     local function Later()
+        if Enabled() and InCombatLockdown() and ns.Log then
+            ns.Log("topface", string.format("binding stack changed in combat (top set %s); face keys %s",
+                tostring(manager.PeekName and manager:PeekName()),
+                KeyTakenBy("PAD3") and "taken" or "free"))
+        end
         if Enabled() and not queued then
             queued = true
             C_Timer.After(0, function()
