@@ -400,7 +400,10 @@ local function StyleSpecialIcon(visual, native, region, offset)
         if not visual.outerMask then
             local outer = visual:CreateMaskTexture()
             outer:SetAllPoints(visual)
-            outer:SetAtlas("CircleMask")
+            -- Black past its edges: an atlas mask repeats its edge pixels
+            -- outward, and a circle touches its square's edges at four
+            -- points, so the picture showed through there past the ring.
+            outer:SetTexture("Interface/CharacterFrame/TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
             visual.outerMask = outer
         end
         -- The slot's icon starts with the inner mask (BuildSlotVisual).
