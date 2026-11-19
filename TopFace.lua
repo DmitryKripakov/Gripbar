@@ -526,7 +526,23 @@ local function CreateFace(index)
         end
         PickupAction(slot)
     end)
+    -- Mouse over: the native hover ring on the cell shown (ours or the
+    -- game's, whichever is visible).
+    local function HoverDisplay()
+        for _, layer in ipairs({ "lbrb", "lb", "rb", "top" }) do
+            local display = face[layer]
+            if display and display.holder:IsVisible() then
+                return display
+            end
+        end
+        return nil
+    end
     secure:SetScript("OnEnter", function(self)
+        local hover = HoverDisplay()
+        if hover and hover.visual.highlight.artAvailable then
+            hover.visual.highlight:Show()
+            face.hover = hover
+        end
         local slot = MouseSlot(face, index)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         if slot and C_ActionBar.HasAction(slot) then
@@ -538,6 +554,10 @@ local function CreateFace(index)
         GameTooltip:Show()
     end)
     secure:SetScript("OnLeave", function()
+        if face.hover then
+            face.hover.visual.highlight:Hide()
+            face.hover = nil
+        end
         GameTooltip:Hide()
     end)
 
@@ -572,6 +592,9 @@ local function CreateFace(index)
         PickupAction(slot)
     end)
     mini:SetScript("OnEnter", function(self)
+        if face.mini.visual.highlight.artAvailable then
+            face.mini.visual.highlight:Show()
+        end
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         local slot = face.miniSlot
         if slot and C_ActionBar.HasAction(slot) then
@@ -583,6 +606,7 @@ local function CreateFace(index)
         GameTooltip:Show()
     end)
     mini:SetScript("OnLeave", function()
+        face.mini.visual.highlight:Hide()
         GameTooltip:Hide()
     end)
 
