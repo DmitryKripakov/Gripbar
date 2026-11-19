@@ -593,6 +593,9 @@ local function CreateFace(index)
     end)
     secure:SetScript("OnDragStart", function()
         local slot = MouseSlot(face, index)
+        if ns.Log then
+            ns.Log("topface", string.format("drag from %s: cell %s, bumper %s", FACES[index].name, tostring(slot), tostring(HeldBumper())))
+        end
         if InCombatLockdown() or not slot or not C_ActionBar.HasAction(slot) then
             return
         end
