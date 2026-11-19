@@ -350,8 +350,12 @@ local function ApplySlotIcon(button)
                 tostring(kind), tostring(value), native and native:GetName() or "no game button"))
         end
         button.gameIconKind, button.gameIconValue = kind, value
+        -- An atlas brings its own coordinates (the inspect crosshair is a
+        -- piece of the cursor sheet): reset them only for a plain texture.
+        if kind ~= "atlas" then
+            button.visual.icon:SetTexCoord(0, 1, 0, 1)
+        end
         SetIcon(button.visual.icon, kind, value)
-        button.visual.icon:SetTexCoord(0, 1, 0, 1)
     end
 end
 
@@ -451,8 +455,10 @@ local function Paint(entry)
     if not mark or mark.value ~= value or mark.applied ~= CurrentPicture(region, kind) then
         -- The game's own crop of the icon, put back when we let go.
         local coords = mark and mark.coords or { region:GetTexCoord() }
+        if kind ~= "atlas" then
+            region:SetTexCoord(0, 1, 0, 1)
+        end
         SetIcon(region, kind, value)
-        region:SetTexCoord(0, 1, 0, 1)
         swapped[button] = { value = value, applied = CurrentPicture(region, kind), coords = coords }
     end
 end
