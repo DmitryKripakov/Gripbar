@@ -393,12 +393,15 @@ local PRECLICK = [[
         else
             -- The bumper layer the game shows (it keeps its LB + RB bar until
             -- both are let go), else the bumpers held.
+            -- (No tables here: the restricted environment forbids making them.)
             local shown
-            for _, bumper in ipairs({ "lbrb", "lb", "rb" }) do
-                local bar = control:GetFrameRef("bar-" .. bumper)
-                if not shown and bar and bar:IsVisible() then
-                    shown = bumper
-                end
+            local both, left, right = control:GetFrameRef("bar-lbrb"), control:GetFrameRef("bar-lb"), control:GetFrameRef("bar-rb")
+            if both and both:IsVisible() then
+                shown = "lbrb"
+            elseif left and left:IsVisible() then
+                shown = "lb"
+            elseif right and right:IsVisible() then
+                shown = "rb"
             end
             if shown then
                 layer = shown
