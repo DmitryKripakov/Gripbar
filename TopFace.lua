@@ -62,6 +62,7 @@ local gridShown = false
 local lastError
 local loggedStatus
 local UpdateMirror -- below; the displays use it
+local WrapGameButtons
 local AnchorMini
 
 local function Bars()
@@ -370,6 +371,53 @@ header:SetAttribute("gb-eval", [[
         end
     end
 ]])
+-- Puts one face key's bindings (and its modifier variants) back on top, from
+-- secure code: the game binds its face keys again when one of its windows
+-- that took them closes (loot, group loot, bags...), and in combat insecure
+-- code cannot bind them back. The bindings to restore are written out of
+-- combat as attributes (bk-<face>-<n>-key / -click / -action).
+header:SetAttribute("gb-bind-key", [[
+    local i = ...
+    for j = 1, self:GetAttribute("bk-" .. i .. "-n") or 0 do
+        local key = self:GetAttribute("bk-" .. i .. "-" .. j .. "-key")
+        local click = self:GetAttribute("bk-" .. i .. "-" .. j .. "-click")
+        if key and click then
+            self:SetBindingClick(true, key, click, "LeftButton")
+        elseif key then
+            self:SetBinding(true, key, self:GetAttribute("bk-" .. i .. "-" .. j .. "-action"))
+        end
+    end
+]])
+
+-- On the game's own face buttons (top bar and bumper bars): a press reaching
+-- one of them through the game's binding means ours was lost. Ours goes back
+-- on top at once; a press meant for a cell of ours (it holds an action) is
+-- dropped, so the game's function does not fire in its place (the next press
+-- is ours). Presses of our own relays (our cell empty) go through.
+local RECLAIM = [[
+    local name = self:GetName()
+    local i = name and control:GetAttribute("face-of-" .. name)
+    if not i or not control:GetAttribute("gb-on") then
+        return
+    end
+    local face = control:GetFrameRef("face" .. i)
+    if not (face and face:GetAttribute("gb-bindable")) then
+        return
+    end
+    control:RunAttribute("gb-bind-key", i)
+    if down then
+        local layer = control:GetAttribute("layer-of-" .. name)
+        local slot = face:GetAttribute(layer == "top" and "gb-top" or ("gb-" .. layer))
+        if slot and HasAction(slot) then
+            control:SetAttribute("gb-drop-" .. i, true)
+            return false
+        end
+    elseif control:GetAttribute("gb-drop-" .. i) then
+        control:SetAttribute("gb-drop-" .. i, nil)
+        return false
+    end
+]]
+
 header:SetAttribute("_onstate-gbface", [[
     self:SetAttribute("gb-state", newstate)
     self:RunAttribute("gb-eval")
@@ -819,6 +867,23 @@ local function ModifiedVariants(key)
     return game, ours
 end
 
+-- The game's face buttons of each layer get the reclaim wrap, once.
+local wrapped = {}
+function WrapGameButtons(index)
+    for _, layer in ipairs({ "top", "lb", "rb", "lbrb" }) do
+        local native = NativeButton(layer, index)
+        local name = native and native:GetName()
+        if name then
+            header:SetAttribute("face-of-" .. name, index)
+            header:SetAttribute("layer-of-" .. name, layer)
+            if not wrapped[native] then
+                wrapped[native] = true
+                header:WrapScript(native, "OnClick", RECLAIM)
+            end
+        end
+    end
+end
+
 local function Enabled()
     return GripbarDB and GripbarDB.topFace == true and ns.topFaceSlots ~= nil
 end
@@ -929,15 +994,32 @@ local function ApplyTopFace()
             if takenBy then
                 menus[#menus + 1] = def.name .. ": " .. takenBy
             end
-            if on and (gridShown or edit or AnyCellFilled(index)) and not takenBy then
-                SetOverrideBindingClick(header, true, def.key, secure:GetName(), "LeftButton")
-                local game, ours = ModifiedVariants(def.key)
-                for _, variant in ipairs(ours) do
-                    SetOverrideBindingClick(header, true, variant, secure:GetName(), "LeftButton")
-                end
-                local nativeAction = "CLICK InputFunctionBindingButton_" .. def.key .. ":LeftButton"
-                for _, variant in ipairs(game) do
-                    SetOverrideBinding(header, true, variant, nativeAction)
+            local bindable = on and (gridShown or edit or AnyCellFilled(index))
+            local game, ours = ModifiedVariants(def.key)
+            local nativeAction = "CLICK InputFunctionBindingButton_" .. def.key .. ":LeftButton"
+            -- What the secure side puts back when the game takes the key.
+            local list = { { def.key, secure:GetName() } }
+            for _, variant in ipairs(ours) do
+                list[#list + 1] = { variant, secure:GetName() }
+            end
+            for _, variant in ipairs(game) do
+                list[#list + 1] = { variant, nil, nativeAction }
+            end
+            for j, entry in ipairs(list) do
+                header:SetAttribute("bk-" .. index .. "-" .. j .. "-key", entry[1])
+                header:SetAttribute("bk-" .. index .. "-" .. j .. "-click", entry[2])
+                header:SetAttribute("bk-" .. index .. "-" .. j .. "-action", entry[3])
+            end
+            header:SetAttribute("bk-" .. index .. "-n", #list)
+            secure:SetAttribute("gb-bindable", bindable or nil)
+            WrapGameButtons(index)
+            if bindable and not takenBy then
+                for _, entry in ipairs(list) do
+                    if entry[2] then
+                        SetOverrideBindingClick(header, true, entry[1], entry[2], "LeftButton")
+                    else
+                        SetOverrideBinding(header, true, entry[1], entry[3])
+                    end
                 end
                 taken = taken + 1
             end
