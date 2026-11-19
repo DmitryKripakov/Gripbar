@@ -358,7 +358,11 @@ local function SetIcon(texture, kind, value, coords)
             texture:SetSpriteSheetCell(1, 1, 1)
         end
     else
-        texture:SetTexture((value:gsub("|.*$", "")))
+        -- The key's suffix off; a file ID goes back as a number (the game
+        -- gives some pictures by ID: Back on a taxi, the interact pictures),
+        -- a string of digits is no texture path.
+        local file = value:gsub("|.*$", "")
+        texture:SetTexture(tonumber(file) or file)
         if coords then
             texture:SetTexCoord(coords[1], coords[2], coords[3], coords[4])
         else

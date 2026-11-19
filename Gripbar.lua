@@ -163,6 +163,10 @@ local function ClearSlot(panelArg, paddleArg)
 end
 
 -- /grip paddle [1-4] [actions|prev|next]
+local function PaddleName(index)
+    return ns.GetPaddleName and ns.GetPaddleName(index) or ("P" .. tostring(index))
+end
+
 local function HandlePaddleCommand(paddleArg, behaviorArg)
     local paddleIndex = tonumber(paddleArg)
     if paddleArg and (not paddleIndex or paddleIndex ~= math.floor(paddleIndex)
@@ -190,9 +194,6 @@ local function HandlePaddleCommand(paddleArg, behaviorArg)
     end
 end
 
-local function PaddleName(index)
-    return ns.GetPaddleName and ns.GetPaddleName(index) or ("P" .. tostring(index))
-end
 
 local function PrintHelp()
     Print(L("Commands (/gripbar works the same as /grip):"))
