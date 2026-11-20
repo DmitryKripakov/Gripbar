@@ -17,6 +17,16 @@ local MAX_PROBLEMS = 200
 local MAX_SESSIONS = 20
 local PROBLEM_KINDS = { error = true, blocked = true, warning = true }
 
+-- Values the game keeps secret (a unit's name while its own targeting runs,
+-- for one) cannot be compared or looked at by addon code: logged as a mark.
+local IsSecret = _G.issecretvalue
+local function Plain(value)
+    if IsSecret and IsSecret(value) then
+        return "(secret value)"
+    end
+    return tostring(value)
+end
+
 local function On()
     return type(GripbarDebugLog) == "table" and GripbarDebugLog.enabled == true
 end
@@ -61,7 +71,10 @@ local function Log(kind, text, stack)
     if not On() then
         return
     end
-    text = tostring(text)
+    text = Plain(text)
+    if stack ~= nil then
+        stack = Plain(stack)
+    end
     if PROBLEM_KINDS[kind] then
         RecordProblem(kind, text, stack)
     end
@@ -185,6 +198,7 @@ local function ToggleDebug(args)
 end
 
 ns.Log = Log
+ns.Plain = Plain
 ns.LogDiagnostics = LogDiagnostics
 ns.IsDebugLogOn = On
 ns.SetDebugLogEnabled = SetEnabled

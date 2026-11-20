@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed a Lua error from the debug log when a bumper release picked a target ("secret string value"): values the game keeps secret are no longer compared.
+
 ## 1.2.2
 
 - Game action macros in cells (Back, Interact, Inspect, Jump) no longer get swallowed when the same face button's top cell holds an action (Back on a bumper cell sometimes did nothing).

@@ -20,6 +20,10 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
 - **`/run` in a macro is tainted on purpose** (`*** ForceTaint_Strong ***`). A window opened with `/run ToggleSpellBook()`... is tainted, and the game blocks closing it (and then `SetPreferredGamepadInteractTarget`). Open windows by clicking the game's own buttons: `/click SpellbookMicroButton`, `CharacterMicroButton`, `QuestLogMicroButton`, `MainMenuBarBackpackButton`.
 - `ToggleSpellBook` does not exist in Forever; the binding calls `PlayerSpellsUtil.ToggleSpellBookFrame()`. Check `Bindings_Camelot.xml` before calling a UI function.
 
+## Secret values
+
+- The client hands addon code **secret values** in some places: `UnitName("target")` read in a `PLAYER_TARGET_CHANGED` handler that the game fires from inside its own targeting (`TargetNearestEnemy` on a bumper release). Comparing one (`==`), testing it, or using it as a table key errors ("attempt to compare ... a secret string value"); concatenating one makes the whole string secret. Check with `issecretvalue(v)` first; the debug log turns secrets into "(secret value)" (`ns.Plain`).
+
 ## Secure (restricted) code
 
 - Snippets (`WrapScript`, state drivers, `SecureHandlerExecute`) **cannot create tables**: no `{ ... }`, no `ipairs({ ... })` ("Direct table creation is not permitted"). Unroll lists by hand.

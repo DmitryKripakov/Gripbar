@@ -1280,6 +1280,9 @@ local function CellContent(slot)
     elseif kind == "item" then
         name = (C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id)) or (GetItemInfo and GetItemInfo(id))
     end
+    if issecretvalue and (issecretvalue(kind) or issecretvalue(id) or issecretvalue(name)) then
+        return nil, nil
+    end
     -- By name: a macro's index shifts when macros are added, a spell's ID
     -- when a new rank replaces it on the bars.
     return tostring(kind) .. ":" .. tostring(name or id), name or (tostring(kind) .. " " .. tostring(id))
@@ -1291,7 +1294,10 @@ local function SnapshotCells()
     end
     cellContents = {}
     for _, slot in pairs(ns.topFaceSlots) do
-        cellContents[slot] = { CellContent(slot) }
+        local key, name = CellContent(slot)
+        if key ~= nil then
+            cellContents[slot] = { key, name }
+        end
     end
 end
 
@@ -1306,7 +1312,9 @@ local function WatchCells(changed)
             if slot and (changed == 0 or changed == slot) then
                 local key, name = CellContent(slot)
                 local before = cellContents[slot]
-                if before and before[1] ~= key and not byUser then
+                -- nil: a secret value (cannot be compared); the old record stays.
+                if key == nil then
+                elseif before and before[1] ~= key and not byUser then
                     if ns.Log then
                         ns.Log("warning", string.format("%s cell of %s (slot %d) changed by itself: %s -> %s",
                             kind, def.name, slot, tostring(before[2]), tostring(name)))
@@ -1316,7 +1324,9 @@ local function WatchCells(changed)
                             tostring(before[2]), tostring(name)))
                     end
                 end
-                cellContents[slot] = { key, name }
+                if key ~= nil then
+                    cellContents[slot] = { key, name }
+                end
             end
         end
     end
@@ -1428,7 +1438,15 @@ events:SetScript("OnEvent", function(_, event, slot)
     elseif event == "PLAYER_TARGET_CHANGED" then
         -- Around the bumpers (the game's own targeting runs while one is held).
         if ns.IsDebugLogOn and ns.IsDebugLogOn() and (HeldBumper() or GetTime() - lastBarHide < 1.5) then
-            ns.Log("topface", "target -> " .. tostring(UnitName("target") or "none"))
+            -- The name may be a secret value here (inside the game's own
+            -- targeting): checked before use, never compared.
+            local name = UnitName("target")
+            if not (ns.Plain and ns.Plain(name) == "(secret value)") then
+                name = name and tostring(name) or "none"
+            else
+                name = "(hidden)"
+            end
+            ns.Log("topface", "target -> " .. name)
         end
         return
     elseif event == "PLAYER_ENTERING_WORLD" and not ns.topFaceSlots and ns.ReserveTopFaceSlots then
