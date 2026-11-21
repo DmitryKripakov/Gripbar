@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Own X / Y / B / A is **off by default** for new installs (turn it on in the settings, Combat, or with `/grip face`); a setting already saved stays as it is.
 - Fixed a Lua error from the debug log when a bumper release picked a target ("secret string value"): values the game keeps secret are no longer compared.
 
 ## 1.2.2
