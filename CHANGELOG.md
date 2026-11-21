@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.3
 
 - An error in Gripbar can no longer leave the game's own gamepad code blocked (targeting, resizing the top bar in combat): every handler the game runs in the middle of its code is guarded, and the error is reported a moment later.
 - Game action macros (Back, Interact, Inspect, Jump, the bumper shortcuts) on a paddle or a crossbar slot no longer get swallowed while that face button's own cell holds an action.
