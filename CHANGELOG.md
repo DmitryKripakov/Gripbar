@@ -8,6 +8,7 @@
 - No false "cell changed by itself" for an item whose name loads late or a renamed macro.
 - The mouse area over the bumper cells is put right after a fight that also changed bindings; a rare swallowed button release fixed.
 - Debug log: a longer timeline (3000 lines), less noise.
+- Debug log: notes when the triggers held, the bar the game focuses and the bars drawn enlarged (the game's and Gripbar's) disagree.
 - Own X / Y / B / A is **off by default** for new installs (turn it on in the settings, Combat, or with `/grip face`); a setting already saved stays as it is.
 - Fixed a Lua error from the debug log when a bumper release picked a target ("secret string value"): values the game keeps secret are no longer compared.
 

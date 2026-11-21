@@ -547,6 +547,76 @@ end
 
 
 
+-- Debug log: the triggers held against the bar the game focuses and the
+-- bars drawn enlarged, the game's and ours. A difference that lasts (two
+-- checks in a row, a second apart) is logged once: it tells whether a wrong
+-- enlarged bar is the game's state or Gripbar's drawing.
+local BAR_KEYS = { "topBar", "leftBar", "rightBar", "bottomBar" }
+local lastFocusNote, focusNoteSeen
+
+local function PanelOf(lt, rt)
+    return (lt and rt) and 4 or (lt and 2) or (rt and 3) or 1
+end
+
+local function FocusNote()
+    local state = GetMappedState()
+    local main = _G.GamepadMainActionBarFrame
+    local bars = main and main.PageUnit and main.PageUnit.actionBars
+    if not state or not state.buttons or not bars or type(GamepadMode) ~= "table"
+        or not main:IsShown() or not IsNativeCrossbarFocused() or main.shouldExpand == false then
+        return nil
+    end
+    -- The bumper bars stand in for the top bar while they show.
+    for _, key in ipairs({ "friendlyTargetingBar", "hostileTargetingBar", "shortcutsBar" }) do
+        if bars[key] and bars[key]:IsShown() then
+            return nil
+        end
+    end
+    local ltIndex = GetMappedButtonArrayIndex(state, ns.ltButtonIndex)
+    local rtIndex = GetMappedButtonArrayIndex(state, ns.rtButtonIndex)
+    local held = PanelOf(ltIndex ~= nil and state.buttons[ltIndex] == true, rtIndex ~= nil and state.buttons[rtIndex] == true)
+    local okL, gameL = pcall(GamepadMode.IsLeftModifierDown)
+    local okR, gameR = pcall(GamepadMode.IsRightModifierDown)
+    if not okL or not okR then
+        return nil
+    end
+    local game = PanelOf(gameL == true, gameR == true)
+    local gameBig, ourBig = {}, {}
+    for index, key in ipairs(BAR_KEYS) do
+        if bars[key] and bars[key].actionBarScaledUp then
+            gameBig[#gameBig + 1] = PANELS[index].label
+        end
+        if panelFrames[index] and panelFrames[index].expanded then
+            ourBig[#ourBig + 1] = PANELS[index].label
+        end
+    end
+    local gameText, ourText = table.concat(gameBig, "+"), table.concat(ourBig, "+")
+    local want = PANELS[game].label
+    if held == game and gameText == want and (ourText == want or not panelFrames[1] or not panelFrames[1]:IsShown()) then
+        return nil
+    end
+    return string.format("focus differs: triggers held %s; the game focuses %s; its enlarged bars: %s; ours: %s",
+        PANELS[held].label, want, gameText ~= "" and gameText or "none", ourText ~= "" and ourText or "none")
+end
+
+C_Timer.NewTicker(1, function()
+    if not (ns.IsDebugLogOn and ns.IsDebugLogOn()) or not GripbarDB then
+        return
+    end
+    local ok, note = pcall(FocusNote)
+    if not ok then
+        note = nil
+    end
+    if note and note == focusNoteSeen and note ~= lastFocusNote then
+        lastFocusNote = note
+        ns.Log("focus", note)
+    elseif not note and lastFocusNote then
+        lastFocusNote = nil
+        ns.Log("focus", "focus agrees again")
+    end
+    focusNoteSeen = note
+end)
+
 ns.PrintDiagnostics = PrintDiagnostics
 ns.BuildDiagnosticLines = BuildDiagnosticLines
 ns.ShowDiagnosticsFrame = ShowDiagnosticsFrame
