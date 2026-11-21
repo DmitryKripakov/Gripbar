@@ -363,7 +363,8 @@ local function LiveIcon(def)
                 def.lastLive = { kind, value, coords }
             end
             -- What the game's button shows, once per change (debug log).
-            if value ~= def.loggedValue and ns.Log then
+            -- Not Interact's: it changes with everything the player faces.
+            if value ~= def.loggedValue and ns.Log and def.key ~= "interact" then
                 def.loggedValue = value
                 ns.Log("icon", string.format("%s: %s %s (game button %s, shown %s)", tostring(def.key), kind, tostring(value),
                     button:GetName() or "?", tostring(button:IsVisible())))

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Game action macros (Back, Interact, Inspect, Jump, the bumper shortcuts) on a paddle or a crossbar slot no longer get swallowed while that face button's own cell holds an action.
+- A watchdog (once a second, out of combat) takes the face buttons back when the game binds its own again without a window closing, and puts the safety wrap back on the game's buttons if it was taken off.
+- The game's "swap D-pad and face buttons" setting of the targeting bars: own cells stay on the face buttons.
+- No false "cell changed by itself" for an item whose name loads late or a renamed macro.
+- The mouse area over the bumper cells is put right after a fight that also changed bindings; a rare swallowed button release fixed.
+- Debug log: a longer timeline (3000 lines), less noise.
 - Own X / Y / B / A is **off by default** for new installs (turn it on in the settings, Combat, or with `/grip face`); a setting already saved stays as it is.
 - Fixed a Lua error from the debug log when a bumper release picked a target ("secret string value"): values the game keeps secret are no longer compared.
 

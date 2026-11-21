@@ -12,7 +12,7 @@
 local _, ns = ...
 local L = ns.L
 
-local MAX_LINES = 800
+local MAX_LINES = 3000
 local MAX_PROBLEMS = 200
 local MAX_SESSIONS = 20
 local PROBLEM_KINDS = { error = true, blocked = true, warning = true }
