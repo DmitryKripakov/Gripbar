@@ -349,7 +349,7 @@ events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
 events:RegisterEvent("CVAR_UPDATE")
-events:SetScript("OnEvent", function(_, event, name)
+events:SetScript("OnEvent", ns.Guard(function(_, event, name)
     if event == "PLAYER_REGEN_ENABLED" and not ns.pendingPageBinds then
         return
     end
@@ -357,7 +357,7 @@ events:SetScript("OnEvent", function(_, event, name)
         return
     end
     ApplyPageBinds()
-end)
+end, "Gripbar page bind events"))
 
 ns.PAGE_BIND_PAGES = PAGES
 ns.PAGE_BIND_INPUTS = INPUTS

@@ -75,7 +75,7 @@ local function RegisterNativeModifierCallback()
         return
     end
 
-    local ok = pcall(GamepadMode.RegisterCrossBarModifierStateChanged, OnNativeModifierStateChanged, addon)
+    local ok = pcall(GamepadMode.RegisterCrossBarModifierStateChanged, ns.Guard(OnNativeModifierStateChanged, "Gripbar trigger callback"), addon)
     ns.nativeModifierCallbackRegistered = ok == true
 end
 
@@ -437,7 +437,7 @@ addon:RegisterEvent("CVAR_UPDATE")
 addon:RegisterEvent("GAMEPAD_STANCE_BAR_OVERRIDE_CHANGED")
 addon:RegisterEvent("GAMEPAD_POSSESS_BAR_OVERRIDE_CHANGED")
 
-addon:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
+addon:SetScript("OnEvent", ns.Guard(function(_, event, arg1, arg2, arg3)
     if event == "ADDON_LOADED" then
         if arg1 ~= ADDON_NAME then
             return
@@ -620,4 +620,4 @@ addon:SetScript("OnEvent", function(_, event, arg1, arg2, arg3)
         or event == "PLAYER_EQUIPMENT_CHANGED" then
         UpdateAllButtonVisuals()
     end
-end)
+end, "Gripbar events"))

@@ -67,7 +67,7 @@ local function RecordProblem(kind, text, stack)
     end
 end
 
-local function Log(kind, text, stack)
+local function LogRaw(kind, text, stack)
     if not On() then
         return
     end
@@ -93,6 +93,12 @@ local function Log(kind, text, stack)
     while #lines > MAX_LINES do
         table.remove(lines, 1)
     end
+end
+
+-- Logging never throws: it is called from handlers that run inside the
+-- game's own code.
+local function Log(kind, text, stack)
+    pcall(LogRaw, kind, text, stack)
 end
 
 local function LogDiagnostics(reason)
@@ -139,7 +145,7 @@ events:RegisterEvent("PLAYER_LOGIN")
 for _, event in ipairs({ "ADDON_ACTION_BLOCKED", "ADDON_ACTION_FORBIDDEN", "LUA_WARNING" }) do
     pcall(events.RegisterEvent, events, event)
 end
-events:SetScript("OnEvent", function(_, event, ...)
+events:SetScript("OnEvent", ns.Guard(function(_, event, ...)
     if event == "ADDON_LOADED" then
         if ... == "Gripbar" then
             GripbarDebugLog = type(GripbarDebugLog) == "table" and GripbarDebugLog or {}
@@ -162,9 +168,9 @@ events:SetScript("OnEvent", function(_, event, ...)
     else
         local addon, action = ...
         Log(event == "LUA_WARNING" and "warning" or "blocked", event .. ": " .. tostring(addon) .. " " .. tostring(action),
-            debugstack and debugstack(2, 8, 0) or nil)
+            debugstack and debugstack(2, 24, 0) or nil)
     end
-end)
+end, "Gripbar debug events"))
 
 local function SetEnabled(enabled)
     GripbarDebugLog.enabled = enabled and true or false

@@ -653,20 +653,20 @@ for _, event in ipairs({ "ACTIONBAR_SLOT_CHANGED", "ACTIONBAR_PAGE_CHANGED", "UP
     "UPDATE_SHAPESHIFT_FORM", "UPDATE_MACROS", "PLAYER_ENTERING_WORLD" }) do
     pcall(nativeFrame.RegisterEvent, nativeFrame, event)
 end
-nativeFrame:SetScript("OnEvent", MarkDirty)
+nativeFrame:SetScript("OnEvent", ns.Guard(MarkDirty, "Gripbar game action icons"))
 
 -- Every page turn of the crossbar goes through SetCurrentPage.
 local pageHooked = false
 local function HookPages()
     local unit = PageUnit()
     if not pageHooked and unit and type(unit.SetCurrentPage) == "function" then
-        hooksecurefunc(unit, "SetCurrentPage", MarkDirty)
+        hooksecurefunc(unit, "SetCurrentPage", ns.Guard(MarkDirty, "Gripbar game action icons"))
         pageHooked = true
     end
 end
 local hookFrame = CreateFrame("Frame")
 hookFrame:RegisterEvent("PLAYER_LOGIN")
-hookFrame:SetScript("OnEvent", HookPages)
+hookFrame:SetScript("OnEvent", ns.Guard(HookPages, "Gripbar page hook"))
 
 ---------------------------------------------------------------------------
 -- The picker: every action as an icon to drag (or click) onto a slot
@@ -787,7 +787,7 @@ end
 -- Macros made earlier follow the game's button names (and the new names).
 local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
-events:SetScript("OnEvent", function()
+events:SetScript("OnEvent", ns.Guard(function()
     if InCombatLockdown() then
         return
     end
@@ -816,7 +816,7 @@ events:SetScript("OnEvent", function()
             EnsureMacro(def)
         end
     end
-end)
+end, "Gripbar game action events"))
 
 ns.GAME_ACTIONS = TOP_BUTTONS
 ns.GameActionForSlot = ForSlot

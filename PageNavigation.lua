@@ -480,10 +480,10 @@ local function HookPageChanges()
         return
     end
     lastPage = GetCrossbarPageLabel()
-    hooksecurefunc(pageUnit, "SetCurrentPage", ShowPageIndicator)
-    hooksecurefunc(pageUnit, "SetCurrentPage", function()
+    hooksecurefunc(pageUnit, "SetCurrentPage", ns.Guard(ShowPageIndicator, "Gripbar page indicator"))
+    hooksecurefunc(pageUnit, "SetCurrentPage", ns.Guard(function()
         SyncCurrentPage(false)
-    end)
+    end, "Gripbar page hook"))
     pageHooked = true
 end
 
@@ -496,7 +496,7 @@ local hookFrame = CreateFrame("Frame")
 hookFrame:RegisterEvent("PLAYER_LOGIN")
 hookFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 pcall(hookFrame.RegisterEvent, hookFrame, "GAMEPAD_POSSESS_BAR_OVERRIDE_CHANGED")
-hookFrame:SetScript("OnEvent", function(_, event)
+hookFrame:SetScript("OnEvent", ns.Guard(function(_, event)
     if event == "PLAYER_LOGIN" then
         HookPageChanges()
         AttachChangePageButton()
@@ -504,7 +504,7 @@ hookFrame:SetScript("OnEvent", function(_, event)
     ConfigurePageSkip()
     ConfigurePageTracking()
     SyncCurrentPage(event == "PLAYER_LOGIN" or event == "PLAYER_REGEN_ENABLED")
-end)
+end, "Gripbar page events"))
 
 local function GetPaddleBehavior(paddleIndex)
     -- Not a paddle (the top bar's own X / Y / B / A): plain actions.

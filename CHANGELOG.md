@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- An error in Gripbar can no longer leave the game's own gamepad code blocked (targeting, resizing the top bar in combat): every handler the game runs in the middle of its code is guarded, and the error is reported a moment later.
 - Game action macros (Back, Interact, Inspect, Jump, the bumper shortcuts) on a paddle or a crossbar slot no longer get swallowed while that face button's own cell holds an action.
 - A watchdog (once a second, out of combat) takes the face buttons back when the game binds its own again without a window closing, and puts the safety wrap back on the game's buttons if it was taken off.
 - The game's "swap D-pad and face buttons" setting of the targeting bars: own cells stay on the face buttons.

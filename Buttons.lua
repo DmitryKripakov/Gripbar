@@ -666,11 +666,11 @@ local function GetSpellAlertFrame(button)
     frame:SetFrameLevel(visual.cooldown:GetFrameLevel() + 1)
     -- Animations stop while the panels are hidden (gamepadOnly, interface
     -- transitions); resume an active glow when they are shown again.
-    frame:HookScript("OnShow", function(self)
+    frame:HookScript("OnShow", ns.Guard(function(self)
         if button.spellAlertShown then
             ResumeSpellAlertLoop(self)
         end
-    end)
+    end, "Gripbar frame shown"))
     visual.spellAlert = frame
     return frame
 end

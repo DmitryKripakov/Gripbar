@@ -397,6 +397,26 @@ local function IsPaddleKeyAllowed(key)
     return true
 end
 
+-- Wraps a handler the game may run in the middle of its own code (an event
+-- fired inside a game function, a hook, a callback): an error in it must not
+-- reach the engine from there. Seen 2026-11-20: an error in our
+-- PLAYER_TARGET_CHANGED handler, fired inside the game's TargetNearestEnemy,
+-- left the game's own targeting marked as tainted by Gripbar, and its
+-- protected calls (targeting, resizing the top bar) were refused for seconds.
+-- The error is reported a moment later, outside the game's code.
+local function Guard(fn, what)
+    return function(...)
+        local ok, err = pcall(fn, ...)
+        if not ok then
+            local text = (what or "Gripbar") .. ": " .. (ns.Plain and ns.Plain(err) or tostring(err))
+            C_Timer.After(0, function()
+                geterrorhandler()(text)
+            end)
+        end
+    end
+end
+ns.Guard = Guard
+
 ns.PANEL_COUNT = PANEL_COUNT
 ns.PADDLE_COUNT = PADDLE_COUNT
 ns.LAYOUT = LAYOUT

@@ -616,7 +616,7 @@ local function CreateFace(index)
     -- cell while it shows the enemy one. They swap when a living enemy is
     -- targeted. With an action on the cursor the enemy cell shows even empty,
     -- to drop it on.
-    function secure:GBRoute()
+    secure.GBRoute = ns.Guard(function()
         local top = TopSlot(face)
         ShowDisplay(face.top, top)
         local normal, enemy = Cell(index, "normal"), Cell(index, "enemy")
@@ -645,7 +645,7 @@ local function CreateFace(index)
         end
         face.miniSlot = mini
         ShowDisplay(face.mini, not mirror and mini or nil, mirror)
-    end
+    end, "Gripbar GBRoute")
 
     -- The pressed look on the cell that fired (ours only).
     secure:SetScript("PostClick", function(self, _, down)
@@ -798,20 +798,20 @@ local function CreateFace(index)
     for layer in pairs(LAYER_BARS) do
         local _, bar = NativeButton(layer, index)
         if bar then
-            bar:HookScript("OnShow", face.Raise)
-            bar:HookScript("OnHide", face.Raise)
+            bar:HookScript("OnShow", ns.Guard(face.Raise, "Gripbar mouse area"))
+            bar:HookScript("OnHide", ns.Guard(face.Raise, "Gripbar mouse area"))
             if index == 1 then
-                bar:HookScript("OnShow", function()
+                bar:HookScript("OnShow", ns.Guard(function()
                     if ns.Log then
                         ns.Log("topface", "bar " .. layer .. " shown")
                     end
-                end)
-                bar:HookScript("OnHide", function()
+                end, "Gripbar bar shown"))
+                bar:HookScript("OnHide", ns.Guard(function()
                     lastBarHide = GetTime()
                     if ns.Log then
                         ns.Log("topface", "bar " .. layer .. " hidden")
                     end
-                end)
+                end, "Gripbar bar hidden"))
             end
         end
     end
@@ -1251,7 +1251,7 @@ local function TopSetName()
 end
 
 -- The secure side won a face key back from the game's binding.
-function header:GBReclaimed(index, layer, dropped)
+function header.GBReclaimed(_, index, layer, dropped)
     local def = FACES[tonumber(index) or 0]
     if ns.Log then
         ns.Log("topface", string.format("won %s back (%s layer) from the game's binding%s; top set %s, combat %s",
@@ -1536,7 +1536,7 @@ local function HookBindingStack()
     end
     for _, method in ipairs({ "AddBindingSet", "RemoveSet", "ClearBindings", "SetCoreBindingSet" }) do
         if type(manager[method]) == "function" then
-            hooksecurefunc(manager, method, Later)
+            hooksecurefunc(manager, method, ns.Guard(Later, "Gripbar binding stack hook"))
         end
     end
 end
@@ -1550,7 +1550,7 @@ events:RegisterEvent("PLAYER_TARGET_CHANGED")
 events:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 events:RegisterEvent("ACTIONBAR_SHOWGRID")
 events:RegisterEvent("ACTIONBAR_HIDEGRID")
-events:SetScript("OnEvent", function(_, event, slot)
+events:SetScript("OnEvent", ns.Guard(function(_, event, slot)
     if event == "PLAYER_LOGIN" then
         HookBindingStack()
         C_Timer.NewTicker(1, function()
@@ -1614,7 +1614,7 @@ events:SetScript("OnEvent", function(_, event, slot)
     if GripbarDB then
         ApplyTopFace()
     end
-end)
+end, "Gripbar TopFace events"))
 
 ns.ApplyTopFace = ApplyTopFace
 ns.ToggleTopFace = Toggle

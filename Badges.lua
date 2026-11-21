@@ -149,9 +149,9 @@ local function Discover()
                 found[badge.key] = info
                 if not hooked[frame] then
                     hooked[frame] = true
-                    hooksecurefunc(frame, "SetPoint", function()
+                    hooksecurefunc(frame, "SetPoint", ns.Guard(function()
                         OnNativeSetPoint(info)
-                    end)
+                    end, "Gripbar badge hook"))
                 end
             end
         end
@@ -220,12 +220,12 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_ENTERING_WORLD")
 events:RegisterEvent("PLAYER_REGEN_ENABLED")
-events:SetScript("OnEvent", function(_, event)
+events:SetScript("OnEvent", ns.Guard(function(_, event)
     if event == "PLAYER_REGEN_ENABLED" and not ns.pendingBadgeRefresh then
         return
     end
     ApplyBadgeOffsets()
-end)
+end, "Gripbar badge events"))
 
 ns.BADGES = BADGES
 ns.ApplyBadgeOffsets = ApplyBadgeOffsets
