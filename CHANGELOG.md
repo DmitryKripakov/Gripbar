@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- A spell menu (portals, teleports, pet calls) dropped on a Gripbar slot goes back onto the cursor with a note, instead of a Lua error on every press: only the game's own crossbar slots can open these menus.
+
 ## 1.2.3
 
 - An error in Gripbar can no longer leave the game's own gamepad code blocked (targeting, resizing the top bar in combat): every handler the game runs in the middle of its code is guarded, and the error is reported a moment later.

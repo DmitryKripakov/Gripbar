@@ -61,6 +61,7 @@ Pitfalls of WoW: Forever's gamepad UI and of addon code around it, learned while
 
 ## Action slots
 
+- **Flyouts (portals, teleports, pet calls) cannot open from a button of ours.** `SECURE_ACTIONS.action` runs `(self.popup or SpellFlyout):Toggle(self, flyoutID, ...)` with the pressed button as the flyout button and calls the game's `FlyoutButtonMixin` methods on it (`TogglePopup`, `GetPopupDirection`): "attempt to call a nil value" from a Gripbar router. Mixing those methods into our button would make the flyout run addon code: tainted, its spell buttons could not cast, and the gamepad radial (`GamepadSpellFlyout`) pushes a binding set from there. A flyout dropped on a slot of ours is put back on the cursor (ActionStorage.lua). A menu of our own (secure buttons per flyout spell, bound while open) is the way to support them.
 - Gamepad action storage: `C_GamepadUI` slots (here 181-360). Pages 1-3 come from `GetGamepadStorageSlotIndexFromPageAndPageUnitSlotID`; the top face buttons are reserved (action 0) and take no actions.
 - **At `ADDON_LOADED` every slot looks empty**: the game has not loaded their contents yet. Choose free slots at `PLAYER_ENTERING_WORLD` or later, or you pick slots holding the player's old actions.
 - Never clear a slot you did not create: it may hold the player's things. Drop it from our list instead.

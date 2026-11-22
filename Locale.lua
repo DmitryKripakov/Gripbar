@@ -224,6 +224,7 @@ if locale == "ruRU" then
         ["The top bar's X / Y / B / A are back to play."] = "X / Y / B / A верхней панели снова работают как в игре.",
         ["Change the cells out of combat."] = "Менять ячейки можно только вне боя.",
         ["Cleared the %s cell of %s."] = "Ячейка %s кнопки %s очищена.",
+        ["Spell menus (portals, teleports, pet calls...) open only from the game's own crossbar slots; a Gripbar slot cannot open one. Put it on a crossbar slot."] = "Меню заклинаний (порталы, телепорты, призыв питомцев…) открываются только с родных слотов крестовины; слот Gripbar открыть такое меню не может. Положите его на слот крестовины.",
         ["%s: the game holds their binding in this fight; the next press should win it back. /grip debug logs the details."] = "%s: в этом бою привязку держит игра; следующее нажатие должно её вернуть. Подробности пишет журнал /grip debug.",
         ["%s of %s changed by itself: %s -> %s."] = "%s кнопки %s изменилась сама: %s → %s.",
         ["The normal cell"] = "Обычная ячейка",

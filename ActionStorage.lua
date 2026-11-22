@@ -355,6 +355,98 @@ local function InitializeNativeStorage()
     ReservePageSlots()
 end
 
+---------------------------------------------------------------------------
+-- Flyouts (the game's menus of spells: portals, teleports, pet calls...)
+---------------------------------------------------------------------------
+-- A flyout cannot work on a slot of ours. The game's secure action code
+-- opens it with flyout:Toggle(<the button pressed>, ...), and that calls the
+-- game's flyout-button methods on the button (TogglePopup,
+-- GetPopupDirection...): ours has none (a Lua error on every press). Giving
+-- ours those methods would not help: the game's flyout would run them as
+-- addon code and its spells would be refused (a tainted flyout cannot cast),
+-- and on the gamepad it pushes a binding set from there. So a flyout dropped
+-- on a slot of ours goes back onto the cursor, with a note.
+local flyoutScanPending = false
+local lastFlyoutNote = 0
+
+local function IsOwnSlot(slot)
+    local own = false
+    ForEachReservedSlot(function(reserved)
+        if reserved == slot then
+            own = true
+        end
+    end)
+    if not own and ns.topFaceSlots then
+        own = tContains(ns.topFaceSlots, slot)
+    end
+    return own
+end
+
+-- Returns true when the slot held a flyout (now taken out).
+local function RejectFlyout(slot, keepOnCursor)
+    if not slot or not C_ActionBar.HasAction(slot) then
+        return false
+    end
+    local kind = GetActionInfo(slot)
+    if (issecretvalue and issecretvalue(kind)) or kind ~= "flyout" then
+        return false
+    end
+    if InCombatLockdown() then
+        flyoutScanPending = true
+        return false
+    end
+    -- With an action on the cursor (the one this drop replaced) the pickup
+    -- swaps it back into the slot.
+    PickupAction(slot)
+    if not keepOnCursor then
+        ClearCursor()
+    end
+    if GetTime() - lastFlyoutNote > 2 then
+        lastFlyoutNote = GetTime()
+        ns.Print(ns.L("Spell menus (portals, teleports, pet calls...) open only from the game's own crossbar slots; a Gripbar slot cannot open one. Put it on a crossbar slot."))
+    end
+    if ns.Log then
+        ns.Log("storage", "flyout taken out of slot " .. tostring(slot))
+    end
+    return true
+end
+
+local function ScanForFlyouts()
+    if InCombatLockdown() then
+        flyoutScanPending = true
+        return
+    end
+    flyoutScanPending = false
+    ForEachReservedSlot(function(slot)
+        RejectFlyout(slot, false)
+    end)
+    for _, slot in pairs(ns.topFaceSlots or {}) do
+        RejectFlyout(slot, false)
+    end
+end
+
+local flyoutEvents = CreateFrame("Frame")
+flyoutEvents:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
+flyoutEvents:RegisterEvent("PLAYER_ENTERING_WORLD")
+flyoutEvents:RegisterEvent("PLAYER_REGEN_ENABLED")
+flyoutEvents:SetScript("OnEvent", ns.Guard(function(_, event, slot)
+    if not ns.nativeStorageEnabled then
+        return
+    end
+    if event == "ACTIONBAR_SLOT_CHANGED" then
+        slot = tonumber(slot) or 0
+        if slot > 0 and IsOwnSlot(slot) then
+            -- A drop just now: back onto the cursor, to put elsewhere.
+            RejectFlyout(slot, true)
+        end
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        -- The slots' contents are loaded a moment after login.
+        C_Timer.After(6, ns.Guard(ScanForFlyouts, "Gripbar flyout scan"))
+    elseif flyoutScanPending then
+        ScanForFlyouts()
+    end
+end, "Gripbar flyout events"))
+
 ns.DiscoverNativeStorageSlots = DiscoverNativeStorageSlots
 ns.InitializeNativeStorage = InitializeNativeStorage
 ns.GetNativeSlot = GetNativeSlot
